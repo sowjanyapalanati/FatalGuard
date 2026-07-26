@@ -316,7 +316,7 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 ```bibtex
 @article{fetalguard2026,
   title={FetalGuard AI: A Real-Time Event-Driven Clinical Decision Support System for Fetal Health Monitoring Using Hybrid CNN-BiLSTM, GAN, and Explainable LLMs},
-  author={Thrinadh, Adabala Venkata},
+  author={FetalGuard AI Research Team},
   journal={M.Tech Dissertation, Department of Computer Science & Engineering},
   year={2026}
 }

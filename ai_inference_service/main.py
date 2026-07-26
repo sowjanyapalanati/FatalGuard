@@ -56,8 +56,12 @@ use_onnx = False
 onnx_session = None
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from llm_reporter import LLMClinicalReporter
-from fhir_converter import convert_to_fhir_observation
+try:
+    from llm_reporter import LLMClinicalReporter
+    from fhir_converter import convert_to_fhir_observation
+except ImportError:
+    from ai_inference_service.llm_reporter import LLMClinicalReporter
+    from ai_inference_service.fhir_converter import convert_to_fhir_observation
 
 llm_reporter_instance = LLMClinicalReporter()
 
