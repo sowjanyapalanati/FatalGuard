@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="FetalGuard AI Logo" width="220" />
+</p>
+
 # 🩺 FetalGuard AI — Real-Time Fetal Health Monitoring System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
