@@ -7,9 +7,14 @@ class SignalProcessor:
     These features match the structure expected by the FetalGuard AI model.
     """
 
-    def __init__(self, fhr_signal, uc_signal):
+    def __init__(self, fhr_signal=None, uc_signal=None):
+        self.fhr = np.array(fhr_signal) if fhr_signal is not None else np.array([140.0] * 120)
+        self.uc = np.array(uc_signal) if uc_signal is not None else np.array([15.0] * 120)
+
+    def process_signal_window(self, fhr_signal, uc_signal):
         self.fhr = np.array(fhr_signal)
         self.uc = np.array(uc_signal)
+        return self.extract_features()
 
     def extract_features(self):
         # 1. Baseline FHR

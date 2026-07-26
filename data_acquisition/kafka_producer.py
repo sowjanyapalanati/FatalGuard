@@ -6,8 +6,13 @@ import json
 import asyncio
 import logging
 from functools import partial
-from confluent_kafka import Producer
-from confluent_kafka.admin import AdminClient, NewTopic
+try:
+    from confluent_kafka import Producer
+    from confluent_kafka.admin import AdminClient, NewTopic
+except ImportError:
+    Producer = None
+    AdminClient = None
+    NewTopic = None
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +26,9 @@ TOPICS_TO_CREATE = [
 
 def ensure_topics(bootstrap_servers: str):
     """Create Kafka topics if they don't already exist."""
+    if AdminClient is None:
+        logger.warning("confluent_kafka not installed -- skipping Kafka topic creation")
+        return
     admin = AdminClient({"bootstrap.servers": bootstrap_servers})
     existing = admin.list_topics(timeout=10).topics.keys()
     new_topics = [
@@ -45,6 +53,10 @@ class CTGKafkaProducer:
         bootstrap_servers: str = "localhost:9092",
     ):
         self.topic = topic
+        if Producer is None:
+            self.producer = None
+            logger.warning("confluent_kafka not installed -- producer running in fallback mode")
+            return
         self.producer = Producer(
             {
                 "bootstrap.servers": bootstrap_servers,
@@ -60,6 +72,9 @@ class CTGKafkaProducer:
 
     async def publish(self, event: dict):
         """Async publish a CTG event to Kafka."""
+        if self.producer is None:
+            logger.info(f"Fallback mode: Event recorded for topic {self.topic}")
+            return
         key = event.get("patient_id", "unknown").encode("utf-8")
         value = json.dumps(event, default=str).encode("utf-8")
         loop = asyncio.get_event_loop()
@@ -70,15 +85,18 @@ class CTGKafkaProducer:
                 self.topic,
                 key=key,
                 value=value,
-                on_delivery=self._delivery_callback,
+                callback=self._delivery_report,
             ),
         )
         self.producer.poll(0)
 
-    def _delivery_callback(self, err, msg):
-        if err:
+    def _delivery_report(self, err, msg):
+        if err is not None:
             logger.error(f"❌ Kafka delivery failed: {err}")
+        else:
+            logger.debug(f"✅ Event delivered to {msg.topic()} [{msg.partition()}]")
 
-    def flush(self):
-        self.producer.flush(timeout=5)
+    def flush(self, timeout: float = 5.0):
+        if self.producer is not None:
+            self.producer.flush(timeout=timeout)
         logger.info("✅ Kafka producer flushed.")

@@ -7,8 +7,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-from signal_processor import SignalProcessor
-from kafka_producer import CTGKafkaProducer, ensure_topics
+try:
+    from signal_processor import SignalProcessor
+    from kafka_producer import CTGKafkaProducer, ensure_topics
+except ImportError:
+    from data_acquisition.signal_processor import SignalProcessor
+    from data_acquisition.kafka_producer import CTGKafkaProducer, ensure_topics
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("hardware_bridge")
