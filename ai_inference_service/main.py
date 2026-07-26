@@ -93,13 +93,20 @@ def load_model():
     else:
         logger.warning("⚠️  No scaler found — using raw features")
 
+    # Configure CPU thread limits for fast execution
+    torch.set_num_threads(2)
+
     # Try ONNX first (faster inference)
     onnx_path = models_dir / "fetal_health.onnx"
     if onnx_path.exists():
         import onnxruntime as ort
-        onnx_session = ort.InferenceSession(str(onnx_path))
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = 2
+        opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        onnx_session = ort.InferenceSession(str(onnx_path), sess_options=opts)
         use_onnx = True
-        logger.info(f"✅ ONNX model loaded from {onnx_path}")
+        logger.info(f"✅ Fast ONNX model loaded from {onnx_path}")
         return
 
     # Fall back to PyTorch
