@@ -1,0 +1,28 @@
+# Virtual Environments
+venv/
+**/venv/
+env/
+.env
+
+# Cache
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.next/
+node_modules/
+**/node_modules/
+
+# Models & Data
+ml_pipeline/models/*.pt
+ml_pipeline/mlruns/
+ml_pipeline/data/raw/
+ml_pipeline/data/processed/
+data_acquisition/data/raw/
+*.zip
+
+# OS Files
+.DS_Store
+Thumbs.db
+ 
+frontend/.env.local

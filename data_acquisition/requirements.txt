@@ -1,0 +1,13 @@
+httpx
+pandas
+openpyxl
+wfdb
+confluent-kafka
+apscheduler
+numpy
+python-dotenv
+kaggle
+requests
+fastapi
+uvicorn
+scipy

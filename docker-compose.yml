@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  patient_service:
+    build:
+      context: ./patient_service
+      dockerfile: Dockerfile
+    container_name: fetal_health_patient_api
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./patient_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/fetal_health.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-default_secret_key_change_me}
+    restart: always
+
+  ai_inference_service:
+    build:
+      context: ./ai_inference_service
+      dockerfile: Dockerfile
+    container_name: fetal_health_ai_api
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./ml_pipeline/models:/app/models:ro
+    restart: always
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODELS_DIR=/app/models
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fetal_health_frontend
+    ports:
+      - "3005:3005"
+    environment:
+      # If deploying, the frontend needs to know where the APIs are publicly hosted.
+      # For a local docker-compose run, we still use the host's port bindings.
+      # You can override these in production.
+      - NEXT_PUBLIC_API_URL=http://localhost:8003
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8003/ws/stream
+      - NEXT_PUBLIC_PATIENT_API_URL=http://localhost:8001
+    depends_on:
+      - ai_inference_service
+      - patient_service
+    restart: always
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
