@@ -1,0 +1,43 @@
+# ─── Heavy Directories (Node.js & Next.js) ─────────────────────────
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+out/
+build/
+dist/
+
+# ─── Python Virtual Environments & Caches ────────────────────────
+venv/
+**/venv/
+.venv/
+**/env/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ─── Large Model Binaries & Datasets ─────────────────────────────
+ml_pipeline/models/*.pt
+ml_pipeline/models/*.ckpt
+ml_pipeline/models/*.onnx
+ml_pipeline/models/*.pkl
+ai_inference_service/models/*.pt
+ai_inference_service/models/*.ckpt
+ai_inference_service/models/*.onnx
+ai_inference_service/models/*.pkl
+data/raw/
+*.csv
+*.zip
+*.tar.gz
+
+# ─── Logs & Temp Storage ──────────────────────────────────────────
+logs/
+*.log
+tmp/
+temp/
+.DS_Store
+Thumbs.db
