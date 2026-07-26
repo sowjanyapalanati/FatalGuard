@@ -16,6 +16,10 @@
 
 Built on an **event-driven microservices architecture**, FetalGuard AI integrates **Hybrid Deep Learning (CNN-BiLSTM)**, **Generative AI (Tabular GAN)**, and **Explainable AI (Llama-3.1 LLM via Groq)** with **HL7 FHIR R4** medical data standards to provide obstetricians with immediate, interpretable risk assessments and automated 3-sentence clinical reports.
 
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="FetalGuard AI Real-Time Clinical Dashboard" width="100%" />
+</p>
+
 ---
 
 ## 📋 Table of Contents
