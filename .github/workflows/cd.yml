@@ -25,12 +25,6 @@ jobs:
             image_name: fetal-ai-inference
           - service: patient_service
             image_name: fetal-patient-service
-          - service: notification_service
-            image_name: fetal-notification-service
-          - service: stream_processor
-            image_name: fetal-stream-processor
-          - service: data_acquisition
-            image_name: fetal-data-acquisition
           - service: frontend
             image_name: fetal-frontend
 
@@ -57,41 +51,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Set up GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: fetal-health-cluster
-          location: us-central1
-
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f infrastructure/k8s/namespace.yaml
-          kubectl apply -f infrastructure/k8s/deployments.yaml
-          kubectl rollout restart deployment -n fetal-health
-
-      - name: Verify deployment
-        run: |
-          kubectl rollout status deployment/ai-inference-service -n fetal-health --timeout=300s
-          kubectl rollout status deployment/patient-service -n fetal-health --timeout=300s
-          kubectl rollout status deployment/notification-service -n fetal-health --timeout=300s
-          kubectl rollout status deployment/fetal-frontend -n fetal-health --timeout=300s
-
-      - name: Smoke test
-        run: |
-          AI_IP=$(kubectl get svc ai-inference-service -n fetal-health -o jsonpath='{.spec.clusterIP}')
-          kubectl run smoke-test --rm -i --image=curlimages/curl --restart=Never -- \
-            curl -sf http://${AI_IP}:8003/health
