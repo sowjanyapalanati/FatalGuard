@@ -49,9 +49,12 @@ class TokenRefreshRequest(BaseModel):
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-def get_password_hash(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+from functools import lru_cache
 
+def get_password_hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=8)).decode("utf-8")
+
+@lru_cache(maxsize=1024)
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
