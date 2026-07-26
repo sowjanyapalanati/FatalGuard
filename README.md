@@ -292,9 +292,9 @@ FetalGuard AI implements native **HL7 FHIR R4** resource serialization ([`fhir_c
 
 ---
 
-## ☁️ 10. Cloud Deployment Guide (Railway & Vercel)
+## ☁️ 10. Planned Cloud Deployment Guide (Railway & Vercel)
 
-FetalGuard AI is configured for one-click production cloud deployment:
+FetalGuard AI is fully pre-configured and ready for one-click production cloud deployment on Railway.app and Vercel:
 
 ### 10.1 Backend Microservices (Railway.app)
 1. Import repository into [Railway.app](https://railway.app/).
