@@ -3,7 +3,19 @@
  */
 import { EventEmitter } from "events";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:8003/ws/stream";
+let rawWsUrl = process.env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_AI_URL || process.env.NEXT_PUBLIC_API_URL || "ws://127.0.0.1:8003";
+
+if (rawWsUrl.startsWith("http://")) {
+  rawWsUrl = rawWsUrl.replace("http://", "ws://");
+} else if (rawWsUrl.startsWith("https://")) {
+  rawWsUrl = rawWsUrl.replace("https://", "wss://");
+}
+
+if (!rawWsUrl.endsWith("/ws/stream")) {
+  rawWsUrl = `${rawWsUrl.replace(/\/$/, "")}/ws/stream`;
+}
+
+const WS_URL = rawWsUrl;
 
 class WebSocketClient extends EventEmitter {
   private ws: WebSocket | null = null;
