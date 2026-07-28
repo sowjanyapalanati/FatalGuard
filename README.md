@@ -53,6 +53,50 @@ Cardiotocography (CTG) continuously measures **Fetal Heart Rate (FHR)** and **Ut
 * **Explainable AI (XAI):** Convert black-box neural network outputs into 3-sentence clinical interpretations adhering strictly to **FIGO (International Federation of Gynecology and Obstetrics)** guidelines.
 * **Interoperability:** Export telemetry observations into **HL7 FHIR R4** format for seamless integration into Electronic Health Record (EHR) systems like Epic or Cerner.
 
+### 1.3 Unified Project Directory Structure
+```
+fetal-health-realtime/
+├── .github/                      # GitHub Actions CI/CD workflows
+├── ai_inference_service/          # PyTorch CNN-BiLSTM, Tabular GAN & Groq LLM Microservice
+│   ├── models/                   # PyTorch Lightning classifier & GAN architectures
+│   ├── fhir_converter.py         # HL7 FHIR R4 JSON serialization module
+│   ├── llm_reporter.py           # FIGO-guided Llama-3.1 clinical reporter
+│   ├── main.py                   # FastAPI service endpoints (/predict, /synthetic, /fhir)
+│   └── Dockerfile                # Microservice container definition
+├── data_acquisition/             # Telemetry Ingestion & Hardware Bridge Engine
+│   ├── fetchers/                 # UCI, Kaggle & PhysioNet 4Hz WFDB fetchers
+│   ├── hardware_bridge.py        # Serial/USB Edge Hardware Transducer Bridge
+│   ├── signal_processor.py       # Scipy peak detection & 19 feature extraction
+│   └── scheduler.py              # Automated streaming replay scheduler
+├── ml_pipeline/                  # Offline Model Training & GAN Synthesis Pipeline
+│   ├── models/                   # Classifier & GAN model definitions
+│   ├── train.py                  # PyTorch Lightning classifier training script
+│   ├── train_gan.py              # Tabular GAN data synthesis & training script
+│   └── evaluate_synthetic.py     # GAN synthetic dataset validation metrics
+├── patient_service/              # Secure Patient & Clinician Auth Microservice
+│   ├── auth.py                   # Bcrypt password hashing & JWT token auth
+│   └── main.py                   # FastAPI patient roster & admission management
+├── frontend/                     # Next.js 15 Real-Time Telemetry Dashboard
+│   ├── app/                      # Next.js App Router (16 Clinical Workstation Pages)
+│   │   ├── dashboard/            # Clinical Workstation Modules (alerts, central-station, partogram, etc.)
+│   │   ├── login/                # Clinician Login
+│   │   └── register/             # Clinician Account Registration
+│   ├── components/               # Reusable React UI Components (CTGWaveform, DashboardLayout, etc.)
+│   ├── lib/                      # Socket.IO WebSocket & Axios API client
+│   └── public/                   # Static icons & brand assets
+├── docs/                         # Comprehensive Project Documentation & Academic Assets
+│   ├── dissertation/             # Academic Dissertation Files (Formatted Word .docx & Master .md)
+│   ├── presentation/             # M.Tech Defense Presentation (.pptx & Script .pdf)
+│   ├── references/               # Academic Literature & Biomedical Research Papers (.pdf)
+│   ├── snipshots/                # High-Res Original Application Snipshots
+│   └── images/                   # System Architecture Diagrams & Application Screenshots
+├── tests/                        # Automated Pytest Integration & Unit Test Suite
+├── docker-compose.yml            # Multi-container orchestration config
+├── start.bat                     # Windows quick launch automation script
+├── vercel.json                   # Vercel deployment configuration
+└── README.md                     # Comprehensive Master System Documentation
+```
+
 ---
 
 ## 📊 2. System Architecture & Data Flow
