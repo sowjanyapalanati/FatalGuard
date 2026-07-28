@@ -19,6 +19,7 @@ jobs:
       packages: write
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - service: ai_inference_service
