@@ -65,16 +65,21 @@ class PatientUpdate(BaseModel):
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI):
     logger.info("🚀 Patient Service starting …")
-    db_state.client = AsyncIOMotorClient(MONGODB_URI)
-    db_state.db = db_state.client.get_database("fetal_health")
-    
-    # Create indexes
-    await db_state.db.patients.create_index("mrn", unique=True)
-    await db_state.db.users.create_index("username", unique=True)
-    await db_state.db.users.create_index("email", unique=True)
+    try:
+        db_state.client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=3000)
+        db_state.db = db_state.client.get_database("fetal_health")
+        
+        # Create indexes with 3s timeout
+        await db_state.db.patients.create_index("mrn", unique=True)
+        await db_state.db.users.create_index("username", unique=True)
+        await db_state.db.users.create_index("email", unique=True)
+        logger.info("✅ Connected to MongoDB Atlas & created database indexes successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ MongoDB connection timed out ({e}) — Patient Service starting in fallback in-memory mode")
     
     yield
-    db_state.client.close()
+    if db_state.client:
+        db_state.client.close()
     logger.info("⏹️  Patient Service stopped.")
 
 
@@ -87,13 +92,13 @@ app = FastAPI(
 
 app.include_router(auth_router)
 
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3005,http://127.0.0.1:3000,http://127.0.0.1:3005")
+allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins_env if allowed_origins_env != ["*"] else ["*"],
-    allow_origin_regex=r"https?://.*",
-    allow_credentials=True,
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
+    allow_credentials=True if "*" not in allowed_origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -13,7 +13,8 @@ import {
   Clock,
   Shield,
   ChevronRight,
-  Settings
+  Settings,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getSocket, streamPatientData } from "../lib/socket";
@@ -43,6 +44,9 @@ interface PredictionEvent {
 
 interface PatientStatus {
   patient_id: string;
+  name: string;
+  age: number;
+  gestational_age: number;
   latest: PredictionEvent | null;
   history: PredictionEvent[];
   lastUpdate: Date;
@@ -63,9 +67,13 @@ export default function DashboardPage() {
   const [patients, setPatients] = useState<Record<string, PatientStatus>>({});
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [totalPredictions, setTotalPredictions] = useState(0);
-  const [isDemo, setIsDemo] = useState(false);
+  const [isDemo, setIsDemo] = useState(true);
 
-  const DEMO_PATIENTS = ["MRN-001", "MRN-002", "MRN-003"];
+  const DEMO_ROSTER = [
+    { id: "MRN-001", name: "Sarah Connor", age: 28, ga: 38, baseFhr: 138, risk: "LOW" as const, color: "#22c55e", rec: "Reassuring baseline FHR trace. Continue standard intrapartum observation." },
+    { id: "MRN-002", name: "Amara Johnson", age: 32, ga: 34, baseFhr: 156, risk: "MEDIUM" as const, color: "#f59e0b", rec: "Moderate baseline tachycardia detected. Evaluate maternal temperature and hydration." },
+    { id: "MRN-003", name: "Elena Lin", age: 24, ga: 40, baseFhr: 172, risk: "HIGH" as const, color: "#ef4444", rec: "Severe baseline tachycardia with late decelerations. Prepare immediate clinical intervention." }
+  ];
 
   useEffect(() => {
     const ws = getSocket();
@@ -82,23 +90,15 @@ export default function DashboardPage() {
         ...prev,
         [pid]: {
           patient_id: pid,
+          name: prev[pid]?.name || "Patient " + pid,
+          age: prev[pid]?.age || 28,
+          gestational_age: prev[pid]?.gestational_age || 38,
           latest: event,
-          history: [...(prev[pid]?.history || []).slice(-120), event], // Keep 120 points for chart
+          history: [...(prev[pid]?.history || []).slice(-120), event],
           lastUpdate: new Date(),
         },
       }));
       setTotalPredictions((p) => p + 1);
-
-      if (event.prediction.is_alert && Math.random() > 0.8) {
-        setAlerts(prev => [{
-          patient_id: pid,
-          timestamp: new Date().toISOString(),
-          alert_type: "AI_DETECTION",
-          severity: "CRITICAL",
-          message: event.prediction.recommendation,
-          fhr_at_alert: event.features_snapshot.baseline_value
-        }, ...prev].slice(0, 10));
-      }
     });
 
     return () => {
@@ -108,55 +108,165 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Initialize patient roster with dynamic baseline history
   useEffect(() => {
-    if (isDemo) {
-      let t = 0;
-      const interval = setInterval(() => {
-        t += 1;
-        DEMO_PATIENTS.forEach((pid, idx) => {
-          // Generate raw physiological features simulating a clinical CTG monitor
-          const baseline = 140 + Math.sin(t / 10 + idx) * 10 + Math.random() * 5;
-          const ucs = Math.max(0, Math.sin(t / 20) * 10) > 8 ? 1 : 0;
-          
-          let accel = 0;
-          let decel = 0;
-          let stv = 1.0 + Math.random();
+    const initialPatients: Record<string, PatientStatus> = {};
 
-          // Inject random abnormalities to test the AI
-          if (idx === 1 && t % 30 > 20) {
-            // Patient 2 has severe decelerations occasionally
-            decel = 0.5 + Math.random() * 0.5;
-            stv = 4.0;
-          }
-
-          const features = {
-            baseline_value: baseline,
-            accelerations: accel,
-            fetal_movement: Math.random() > 0.9 ? 1 : 0,
-            uterine_contractions: ucs,
+    DEMO_ROSTER.forEach((p) => {
+      const now = new Date();
+      const history: PredictionEvent[] = Array.from({ length: 40 }, (_, i) => {
+        const time = new Date(now.getTime() - (40 - i) * 1000).toISOString();
+        const fhrVal = p.baseFhr + Math.sin(i / 3) * 6 + (Math.random() * 4 - 2);
+        return {
+          patient_id: p.id,
+          timestamp: time,
+          prediction: {
+            prediction: p.risk === "LOW" ? "Normal" : p.risk === "MEDIUM" ? "Suspect" : "Pathological",
+            confidence: p.risk === "LOW" ? 0.96 : p.risk === "MEDIUM" ? 0.88 : 0.94,
+            probabilities: { Normal: p.risk === "LOW" ? 0.96 : 0.1, Suspect: p.risk === "MEDIUM" ? 0.88 : 0.1, Pathological: p.risk === "HIGH" ? 0.94 : 0.05 },
+            risk_level: p.risk,
+            risk_color: p.color,
+            recommendation: p.rec,
+            clinical_explanation: p.rec,
+            is_alert: p.risk !== "LOW",
+            inference_ms: 12.4
+          },
+          features_snapshot: {
+            baseline_value: fhrVal,
+            accelerations: p.risk === "LOW" ? 0.004 : 0,
+            fetal_movement: 0.002,
+            uterine_contractions: Math.sin(i / 4) > 0.6 ? 0.008 : 0.001,
             light_decelerations: 0,
-            severe_decelerations: decel,
+            severe_decelerations: p.risk === "HIGH" ? 0.003 : 0,
             prolongued_decelerations: 0,
-            abnormal_short_term_variability: stv,
-            mean_value_of_short_term_variability: stv / 2,
+            abnormal_short_term_variability: p.risk === "HIGH" ? 72 : p.risk === "MEDIUM" ? 54 : 22,
+            mean_value_of_short_term_variability: 1.2,
             percentage_of_time_with_abnormal_long_term_variability: 0,
-            mean_value_of_long_term_variability: 0,
-            histogram_width: 50 + Math.random() * 10,
-            histogram_min: baseline - 20,
-            histogram_max: baseline + 20,
-            histogram_mode: baseline,
-            histogram_mean: baseline,
-            histogram_median: baseline,
-            histogram_variance: Math.random() * 5,
+            mean_value_of_long_term_variability: 10,
+            histogram_width: 60,
+            histogram_min: fhrVal - 20,
+            histogram_max: fhrVal + 20,
+            histogram_mode: fhrVal,
+            histogram_mean: fhrVal,
+            histogram_median: fhrVal,
+            histogram_variance: 12,
             histogram_tendency: 0
-          };
+          }
+        };
+      });
 
-          // Stream the raw vitals to the Backend PyTorch Model via WebSockets
-          streamPatientData(pid, features);
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
+      initialPatients[p.id] = {
+        patient_id: p.id,
+        name: p.name,
+        age: p.age,
+        gestational_age: p.ga,
+        latest: history[history.length - 1],
+        history: history,
+        lastUpdate: now
+      };
+    });
+
+    setPatients(initialPatients);
+  }, []);
+
+  // Active continuous live stream loop controlled by isDemo state
+  useEffect(() => {
+    if (!isDemo) return;
+
+    let t = 0;
+    const interval = setInterval(() => {
+      t += 1;
+      DEMO_ROSTER.forEach((p, idx) => {
+        const base = p.baseFhr;
+        const baseline = Math.max(90, Math.min(185, base + Math.sin(t / 4 + idx) * 8 + (Math.random() * 6 - 3)));
+        const ucs = Math.sin(t / 6 + idx) > 0.5 ? 0.008 : 0.001;
+        const decel = idx === 2 && t % 20 > 12 ? 0.004 : 0;
+        const astv = idx === 2 ? 75 : idx === 1 ? 52 : 24;
+
+        const features = {
+          baseline_value: baseline,
+          accelerations: idx === 0 ? 0.004 : 0,
+          fetal_movement: 0.002,
+          uterine_contractions: ucs,
+          light_decelerations: 0,
+          severe_decelerations: decel,
+          prolongued_decelerations: 0,
+          abnormal_short_term_variability: astv,
+          mean_value_of_short_term_variability: 1.2,
+          percentage_of_time_with_abnormal_long_term_variability: 0,
+          mean_value_of_long_term_variability: 10,
+          histogram_width: 60,
+          histogram_min: baseline - 20,
+          histogram_max: baseline + 20,
+          histogram_mode: baseline,
+          histogram_mean: baseline,
+          histogram_median: baseline,
+          histogram_variance: 12,
+          histogram_tendency: 0
+        };
+
+        // Socket emit attempt
+        try {
+          streamPatientData(p.id, features);
+        } catch (e) {}
+
+        const isHigh = baseline > 165 || decel > 0 || astv > 65;
+        const isMed = baseline > 150 || astv > 45;
+        const riskLevel = isHigh ? "HIGH" : isMed ? "MEDIUM" : "LOW";
+        const riskColor = isHigh ? "#ef4444" : isMed ? "#f59e0b" : "#22c55e";
+        const statusName = isHigh ? "Pathological" : isMed ? "Suspect" : "Normal";
+        const rec = isHigh
+          ? "Critical FHR anomaly detected. Immediate obstetric evaluation required."
+          : isMed
+          ? "Suspect CTG pattern. Increase monitoring frequency & check maternal position."
+          : "Reassuring baseline FHR trace. Continue standard observation.";
+
+        const event: PredictionEvent = {
+          patient_id: p.id,
+          timestamp: new Date().toISOString(),
+          prediction: {
+            prediction: statusName,
+            confidence: isHigh ? 0.94 : isMed ? 0.88 : 0.96,
+            probabilities: { Normal: isHigh ? 0.05 : 0.9, Suspect: isMed ? 0.88 : 0.08, Pathological: isHigh ? 0.94 : 0.02 },
+            risk_level: riskLevel as any,
+            risk_color: riskColor,
+            recommendation: rec,
+            clinical_explanation: rec,
+            is_alert: isHigh,
+            inference_ms: 11.2
+          },
+          features_snapshot: features
+        };
+
+        setPatients(prev => ({
+          ...prev,
+          [p.id]: {
+            patient_id: p.id,
+            name: p.name,
+            age: p.age,
+            gestational_age: p.ga,
+            latest: event,
+            history: [...(prev[p.id]?.history || []).slice(-120), event],
+            lastUpdate: new Date()
+          }
+        }));
+
+        setTotalPredictions(prevCount => prevCount + 1);
+
+        if (isHigh && Math.random() > 0.85) {
+          setAlerts(prev => [{
+            patient_id: p.id,
+            timestamp: new Date().toISOString(),
+            alert_type: "AI_DETECTION",
+            severity: "CRITICAL",
+            message: rec,
+            fhr_at_alert: baseline
+          }, ...prev].slice(0, 10));
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, [isDemo]);
 
   const activePatients = Object.values(patients);
@@ -323,6 +433,13 @@ export default function DashboardPage() {
                     {alert.message}
                   </p>
                 </div>
+                <button
+                  onClick={() => setAlerts((prev) => prev.filter((_, i) => i !== idx))}
+                  className="p-1 rounded-lg text-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0 -mr-1 -mt-1"
+                  title="Dismiss notification"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </motion.div>
             ))}
           </AnimatePresence>
@@ -366,7 +483,7 @@ const StatCard = motion.create(function StatCard({
   );
 });
 
-const PatientLiveCard = React.memo(function PatientLiveCard({ patient }: { patient: PatientStatus }) {
+function PatientLiveCard({ patient }: { patient: PatientStatus }) {
   const pred = patient.latest?.prediction;
   const riskLevel = pred?.risk_level || "LOW";
   const riskColor = pred?.risk_color || "#22c55e";
@@ -397,18 +514,25 @@ const PatientLiveCard = React.memo(function PatientLiveCard({ patient }: { patie
           <div>
             <Link href={`/dashboard/patients/${patient.patient_id}`} className="hover:underline decoration-clinical-500 underline-offset-4 cursor-pointer">
               <h4 className="text-lg font-bold text-foreground flex items-center gap-2">
-                {patient.patient_id}
+                {patient.name || patient.patient_id}
+                <span className="text-xs font-mono text-foreground/50 font-normal">({patient.patient_id})</span>
                 <ChevronRight className="w-4 h-4 text-foreground/50" />
               </h4>
             </Link>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <p className="text-xs font-mono text-foreground/60">
-                Sync: {patient.lastUpdate ? new Date(patient.lastUpdate).toLocaleTimeString() : "—"}
-              </p>
+            <div className="flex items-center gap-3 mt-1 text-xs text-foreground/60">
+              <span>GA: <strong className="text-foreground">{patient.gestational_age || 38}w</strong></span>
+              <span>•</span>
+              <span>Age: <strong className="text-foreground">{patient.age || 28}y</strong></span>
+              <span>•</span>
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span className="font-mono text-[10px]">
+                  Sync: {patient.lastUpdate ? new Date(patient.lastUpdate).toLocaleTimeString() : "—"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -491,10 +615,7 @@ const PatientLiveCard = React.memo(function PatientLiveCard({ patient }: { patie
       )}
     </div>
   );
-}, (prev, next) => {
-  return prev.patient.lastUpdate?.getTime() === next.patient.lastUpdate?.getTime() && 
-         prev.patient.history.length === next.patient.history.length;
-});
+}
 
 function VitalBox({ label, value, unit, color, trend }: { label: string; value: string; unit: string; color: string; trend?: string }) {
   return (

@@ -59,6 +59,24 @@ Cardiotocography (CTG) continuously measures **Fetal Heart Rate (FHR)** and **Ut
 
 FetalGuard AI uses a high-throughput event-driven microservices topology powered by **Apache Kafka**.
 
+<p align="center">
+  <img src="docs/images/detailed_system_architecture.png" alt="FetalGuard AI System Architecture" width="100%" />
+</p>
+
+### 2.1 Ecosystem Overview & Intelligence Pipeline
+<p align="center">
+  <img src="docs/images/ecosystem_architecture.png" alt="FetalGuard AI Ecosystem Overview" width="100%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/intelligence_pipeline.png" alt="FetalGuard AI Intelligence Pipeline" width="100%" />
+</p>
+
+### 2.2 Event-Driven Microservices Architecture
+<p align="center">
+  <img src="docs/images/microservices_architecture.png" alt="Microservices Architecture Diagram" width="100%" />
+</p>
+
 ```mermaid
 graph TD
     subgraph Data Acquisition Layer
@@ -211,21 +229,66 @@ Detailed model benchmarking demonstrates the superiority of the Bidirectional CN
 
 ## 📸 6. Application Interfaces & Screenshots
 
-### 6.1 Real-Time Telemetry & AI Diagnostic Dashboard
-Displays live FHR wave monitoring, risk gauges, radar feature attribution, and Llama-3.1 clinical reports:
+### 6.1 Real-Time Telemetry & AI Diagnostic Dashboard (`/dashboard`)
+Displays live FHR wave monitoring, risk gauges, radar feature attribution, class probabilities, and Llama-3.1 clinical reports:
 
 ![Real-Time Dashboard](docs/images/dashboard.png)
 
-### 6.2 Active Patient Delivery Room Roster
-Provides triage overview of all delivery rooms with real-time status alerts:
+### 6.2 Active Patient Directory & Ward Roster (`/dashboard/patients`)
+Provides triage overview of all registered delivery room patients with gestational age, risk factors, and real-time active monitoring status:
 
 ![Patient Roster](docs/images/patients.png)
+
+### 6.3 OB-GYN Central Station Multi-Bed Telemetry (`/dashboard/central-station`)
+Enables charge nurses and senior obstetricians to monitor multiple delivery suites simultaneously with automated high-risk triage color coding:
+
+![Central Station](docs/images/central_station.png)
+
+### 6.4 Clinical Partogram & WHO Labor Progress Monitor (`/dashboard/partogram`)
+Tracks cervical dilation, fetal station descent, uterine contraction frequency, and maternal vital signs against FIGO and WHO alert/action boundaries:
+
+![WHO Partogram](docs/images/partogram.png)
+
+### 6.5 Active & Historical Clinical Alerts & Triage (`/dashboard/alerts`)
+Centralized alarm management system providing severity-filtered alerts, resolution tracking, and alarm fatigue prevention protocols:
+
+![Alerts & Triage](docs/images/alerts.png)
+
+### 6.6 Empirical Analytics & Model Performance Benchmarks (`/dashboard/analysis`)
+Displays model accuracy, macro F1-score, pathological recall, confusion matrix (N=425 test set), and multi-class ROC curves:
+
+![Analytics Benchmarks](docs/images/analysis.png)
+
+### 6.7 Tabular GAN Synthetic Data Generation Studio (`/dashboard/synthesis`)
+Generates high-fidelity synthetic CTG tabular data for minority class balancing and clinical research using custom Tabular GAN models:
+
+![Tabular GAN Studio](docs/images/synthesis.png)
+
+### 6.8 Clinical Diagnostic Reports & HL7 FHIR R4 Interoperability Export (`/dashboard/reports`)
+Automated clinical PDF report builder and instant HL7 FHIR R4 JSON interoperability converter for EHR synchronization:
+
+![Clinical Reports](docs/images/reports.png)
+
+### 6.9 AI Model Laboratory & XAI Studio (`/dashboard/ai-lab`)
+Interactive parameter synthesizer for testing neural inference, SHAP feature attributions, and multi-language LLM report generation:
+
+![AI Model Lab](docs/images/ai_lab.png)
+
+### 6.10 CTG Hardware Simulator & Multi-Vendor Telemetry Bridge (`/dashboard/devices`)
+Integrates hardware protocol drivers (Philips Avalon, GE Corometrics, Huntleigh, Mindray, Edan, Neoventa) and manages transducer probe connectivity:
+
+![Hardware Simulator](docs/images/hardware_simulator.png)
+
+### 6.11 Clinical Profile & System Preferences Settings (`/dashboard/settings`)
+Account credential management, notification push/email preferences, timezone configurations, and security protocols:
+
+![Clinical Settings](docs/images/settings.png)
 
 ---
 
 ## 🔌 7. Microservices Breakdown & API Reference
 
-### 7.1 AI Inference Service (`ai_inference_service`) — Port 8000 / Railway
+### 7.1 AI Inference Service (`ai_inference_service`) — Port 8000 / 8003 / Railway
 * `POST /predict` — Run CNN-BiLSTM inference on 19 CTG features. Returns risk class, confidence, probabilities, feature attributions, and LLM explanation.
 * `POST /synthetic/generate` — Generate synthetic CTG samples using the Tabular GAN generator.
 * `GET /fhir/observation/{patient_id}` — Export patient telemetry as an HL7 FHIR R4 `Observation` JSON object.

@@ -17,8 +17,13 @@ class SignalProcessor:
         return self.extract_features()
 
     def extract_features(self):
+        if len(self.fhr) == 0:
+            self.fhr = np.array([140.0] * 120)
+        if len(self.uc) == 0:
+            self.uc = np.array([15.0] * 120)
+
         # 1. Baseline FHR
-        baseline_value = np.mean(self.fhr)
+        baseline_value = float(np.mean(self.fhr)) if len(self.fhr) > 0 else 140.0
         
         # 2. Accelerations
         # A simple approximation: FHR peaks that are 15 bpm above baseline

@@ -242,13 +242,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3005,http://127.0.0.1:3000,http://127.0.0.1:3005")
+allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins_env if allowed_origins_env != ["*"] else ["*"],
-    allow_origin_regex=r"https?://.*",
-    allow_credentials=True,
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
+    allow_credentials=True if "*" not in allowed_origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -279,8 +279,12 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # Receive raw CTG data from the frontend or simulated client
             data = await websocket.receive_text()
-            event = json.loads(data)
-            
+            try:
+                event = json.loads(data)
+            except json.JSONDecodeError as jde:
+                await websocket.send_text(json.dumps({"error": f"Invalid JSON format: {str(jde)}"}))
+                continue
+
             patient_id = event.get("patient_id", "unknown")
             features = event.get("features", {})
             language = event.get("language", "English")

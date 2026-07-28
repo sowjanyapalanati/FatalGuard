@@ -19,20 +19,35 @@ def convert_to_fhir_observation(patient_id: str, features: dict, prediction_resu
         "HIGH": "pathological"
     }.get(risk_level, "unknown")
 
+    LOINC_MAP = {
+        "baseline_value": ("73812-0", "Baseline Fetal Heart Rate", "beats/min"),
+        "accelerations": ("73813-8", "Fetal Heart Rate Accelerations", "peaks/min"),
+        "fetal_movement": ("55284-4", "Fetal Movements", "count"),
+        "uterine_contractions": ("73815-3", "Uterine Contraction Frequency", "contractions/10min"),
+        "light_decelerations": ("73814-6", "Light Decelerations", "dips/min"),
+        "severe_decelerations": ("73814-6", "Severe Decelerations", "dips/min"),
+        "prolongued_decelerations": ("73814-6", "Prolonged Decelerations", "dips/min"),
+        "mean_value_of_short_term_variability": ("73816-1", "FHR Short-Term Variability", "ms"),
+        "mean_value_of_long_term_variability": ("73817-9", "FHR Long-Term Variability", "bpm"),
+    }
+
     components = []
     for key, val in features.items():
         if isinstance(val, (int, float)):
+            loinc_code, display_name, unit = LOINC_MAP.get(key, ("9279-1", key.replace("_", " ").title(), "value"))
             components.append({
                 "code": {
                     "coding": [{
                         "system": "http://loinc.org",
-                        "code": "CTG-PARAM",
-                        "display": key.replace("_", " ").title()
+                        "code": loinc_code,
+                        "display": display_name
                     }],
                     "text": key
                 },
                 "valueQuantity": {
-                    "value": float(val)
+                    "value": float(val),
+                    "unit": unit,
+                    "system": "http://unitsofmeasure.org"
                 }
             })
 

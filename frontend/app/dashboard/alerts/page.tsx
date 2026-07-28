@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Shield, Clock, ChevronRight, Activity, Filter, ShieldAlert, Settings } from "lucide-react";
+import { AlertTriangle, Shield, Clock, ChevronRight, Activity, Filter, ShieldAlert, Settings, Trash2, X, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ThemeToggle } from "../../../components/ThemeToggle";
@@ -19,8 +19,9 @@ interface AlertRecord {
 
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
+  const [showUnresolvedOnly, setShowUnresolvedOnly] = useState(false);
 
-  // Generate some dummy historical alerts since we don't have a persistent DB for alerts yet
+  // Generate historical alerts
   useEffect(() => {
     const historicalAlerts: AlertRecord[] = [
       {
@@ -63,19 +64,52 @@ export default function AlertsPage() {
     setAlerts(historicalAlerts);
   }, []);
 
+  const toggleResolve = (id: string) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, resolved: !a.resolved } : a));
+  };
+
+  const dismissAlert = (id: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const dismissAll = () => {
+    setAlerts([]);
+  };
+
+  const displayedAlerts = showUnresolvedOnly ? alerts.filter(a => !a.resolved) : alerts;
   const criticalCount = alerts.filter(a => a.severity === "CRITICAL" && !a.resolved).length;
 
   return (
     <DashboardLayout>
-      <div className="p-8">
-        <header className="flex items-end justify-between mb-8">
+      <div className="p-8 font-sans">
+        <header className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-foreground tracking-tight">Active & Historical Alerts</h2>
-            <p className="text-sm text-foreground/60 mt-2 font-medium">Review AI-detected clinical anomalies and FHR warnings.</p>
+            <h2 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-3">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+              Active & Historical Alerts
+            </h2>
+            <p className="text-sm text-foreground/60 mt-2 font-medium">
+              Review, acknowledge, and dismiss AI-detected clinical anomalies and FHR warnings.
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 bg-surface-secondary px-4 py-2 rounded-xl border border-surface-border hover:bg-surface-secondary/80 transition-colors text-sm font-medium">
-              <Filter className="w-4 h-4" /> Filter Alerts
+          <div className="flex items-center gap-3 flex-wrap">
+            {alerts.length > 0 && (
+              <button 
+                onClick={dismissAll}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 transition-colors text-sm font-semibold"
+              >
+                <Trash2 className="w-4 h-4" /> Dismiss All Notifications
+              </button>
+            )}
+            <button 
+              onClick={() => setShowUnresolvedOnly(!showUnresolvedOnly)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors text-sm font-medium ${
+                showUnresolvedOnly 
+                  ? "bg-clinical-600 text-white border-clinical-500" 
+                  : "bg-surface-secondary text-foreground border-surface-border hover:bg-surface-secondary/80"
+              }`}
+            >
+              <Filter className="w-4 h-4" /> {showUnresolvedOnly ? "Showing Unresolved" : "Filter Unresolved"}
             </button>
             <div className="bg-red-500/10 border border-red-500/30 px-4 py-2 rounded-xl text-red-500 dark:text-red-400 font-bold text-sm flex items-center gap-2 shadow-inner">
               <AlertTriangle className="w-4 h-4" /> {criticalCount} Unresolved Critical
@@ -91,17 +125,18 @@ export default function AlertsPage() {
                 <th className="p-4 font-semibold">Severity</th>
                 <th className="p-4 font-semibold">Patient</th>
                 <th className="p-4 font-semibold">Message</th>
-                <th className="p-4 font-semibold text-right">Status</th>
+                <th className="p-4 font-semibold text-right">Status / Action</th>
               </tr>
             </thead>
             <tbody>
               <AnimatePresence>
-                {alerts.map((alert, idx) => (
+                {displayedAlerts.map((alert, idx) => (
                   <motion.tr 
                     key={alert.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ delay: idx * 0.03 }}
                     className={`border-b border-surface-border hover:bg-surface-secondary/30 transition-colors ${!alert.resolved && alert.severity === 'CRITICAL' ? 'bg-red-500/5' : ''}`}
                   >
                     <td className="p-4">
@@ -126,24 +161,34 @@ export default function AlertsPage() {
                       {alert.message}
                     </td>
                     <td className="p-4 text-right">
-                      {alert.resolved ? (
-                        <span className="text-xs font-semibold text-green-500 flex items-center justify-end gap-1">
-                          <Shield className="w-3 h-3" /> Resolved
-                        </span>
-                      ) : (
-                        <button className="text-xs font-bold text-white bg-clinical-500 hover:bg-clinical-600 px-3 py-1.5 rounded-lg transition-colors">
-                          Review
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => toggleResolve(alert.id)}
+                          className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 ${
+                            alert.resolved 
+                              ? "bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20" 
+                              : "text-white bg-clinical-600 hover:bg-clinical-700 shadow-sm"
+                          }`}
+                        >
+                          {alert.resolved ? <><CheckCircle2 className="w-3.5 h-3.5" /> Resolved</> : "Mark Resolved"}
                         </button>
-                      )}
+                        <button 
+                          onClick={() => dismissAlert(alert.id)}
+                          title="Dismiss notification"
+                          className="p-1.5 rounded-lg text-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
               </AnimatePresence>
             </tbody>
           </table>
-          {alerts.length === 0 && (
+          {displayedAlerts.length === 0 && (
             <div className="p-12 text-center text-foreground/50 text-sm font-medium">
-              No historical alerts found.
+              No active or historical alerts to display. All notifications dismissed.
             </div>
           )}
         </div>

@@ -15,7 +15,11 @@ import {
   Menu,
   X,
   FlaskConical,
-  HardDrive
+  HardDrive,
+  ClipboardList,
+  FileText,
+  BrainCircuit,
+  LayoutGrid
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeToggle } from "./ThemeToggle";
@@ -40,13 +44,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const navLinks = [
-    { href: "/", label: "Live Dashboard", icon: <Activity className="w-4 h-4" /> },
-    { href: "/dashboard/patients", label: "Patients", icon: <Users className="w-4 h-4" /> },
-    { href: "/dashboard/alerts", label: "Alerts", icon: <AlertTriangle className="w-4 h-4" /> },
-    { href: "/dashboard/analysis", label: "Analysis", icon: <TrendingUp className="w-4 h-4" /> },
-    { href: "/dashboard/synthesis", label: "Data Synthesis", icon: <FlaskConical className="w-4 h-4" /> },
-    { href: "/dashboard/devices", label: "Hardware Simulator", icon: <HardDrive className="w-4 h-4" /> },
-    { href: "/dashboard/settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
+    { href: "/", label: "Live Dashboard", icon: <Activity className="w-4 h-4 text-clinical-400" /> },
+    { href: "/dashboard/patients", label: "Patients Roster", icon: <Users className="w-4 h-4 text-blue-400" /> },
+    { href: "/dashboard/central-station", label: "Central Station", icon: <LayoutGrid className="w-4 h-4 text-cyan-400" /> },
+    { href: "/dashboard/partogram", label: "Partogram", icon: <ClipboardList className="w-4 h-4 text-indigo-400" /> },
+    { href: "/dashboard/alerts", label: "Alerts & Triage", icon: <AlertTriangle className="w-4 h-4 text-amber-400" /> },
+    { href: "/dashboard/analysis", label: "Analytics & Trends", icon: <TrendingUp className="w-4 h-4 text-green-400" /> },
+    { href: "/dashboard/synthesis", label: "Tabular GAN", icon: <FlaskConical className="w-4 h-4 text-purple-400" /> },
+    { href: "/dashboard/reports", label: "Clinical Reports", icon: <FileText className="w-4 h-4 text-emerald-400" /> },
+    { href: "/dashboard/ai-lab", label: "AI Model Lab", icon: <BrainCircuit className="w-4 h-4 text-pink-400" /> },
+    { href: "/dashboard/devices", label: "Hardware Simulator", icon: <HardDrive className="w-4 h-4 text-teal-400" /> },
+    { href: "/dashboard/settings", label: "Settings", icon: <Settings className="w-4 h-4 text-gray-400" /> },
   ];
 
   const SidebarContent = () => (
@@ -74,6 +82,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Link 
               key={link.href} 
               href={link.href} 
+              prefetch={true}
               className={isActive ? "nav-link-active group" : "nav-link group transition-colors"}
               onClick={() => setMobileMenuOpen(false)}
             >

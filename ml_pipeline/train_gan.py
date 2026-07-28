@@ -40,7 +40,7 @@ class Discriminator(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-def train_gan(features_dim=19, latent_dim=32, epochs=5000, batch_size=64):
+def train_gan(features_dim=19, latent_dim=32, epochs=3000, batch_size=64):
     print("Initializing Tabular GAN for Fetal Health Augmentation...")
     generator = Generator(latent_dim, features_dim)
     discriminator = Discriminator(features_dim)
@@ -49,10 +49,31 @@ def train_gan(features_dim=19, latent_dim=32, epochs=5000, batch_size=64):
     opt_g = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
     opt_d = optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
     
-    # Generate some mock "Pathological" and "Suspect" class tabular data
-    # In a real run, this would be loaded from the UCI/Kaggle dataset using pandas
     print("Loading minority class CTG samples (Suspect and Pathological)...")
-    real_data = torch.randn((500, features_dim)) # Mock normalized data
+    data_paths = [
+        os.path.join("..", "data", "fetal_health.csv"),
+        os.path.join("data", "fetal_health.csv"),
+        os.path.join(os.path.dirname(__file__), "..", "data", "fetal_health.csv")
+    ]
+    df = None
+    for path in data_paths:
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            print(f"✅ Loaded dataset from {path}")
+            break
+
+    if df is not None:
+        # Filter for minority classes: Suspect (2.0) and Pathological (3.0)
+        minority_df = df[df["fetal_health"].isin([2.0, 3.0])].drop(columns=["fetal_health"])
+        X = minority_df.values
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        real_data = torch.tensor(X_scaled, dtype=torch.float32)
+        features_dim = X.shape[1]
+    else:
+        print("⚠️ Warning: fetal_health.csv not found — using normalized fallback distribution")
+        real_data = torch.randn((500, features_dim))
     
     print(f"Starting training for {epochs} epochs...")
     for epoch in range(epochs):

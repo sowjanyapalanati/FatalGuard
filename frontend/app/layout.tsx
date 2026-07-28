@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "FetalGuard AI — Real-Time Fetal Health Monitoring",
   description:
     "AI-powered clinical decision support system for real-time fetal health monitoring using Cardiotocography (CTG) data.",
+  icons: {
+    icon: "/icon.svg",
+  },
   keywords: [
     "fetal health",
     "CTG",

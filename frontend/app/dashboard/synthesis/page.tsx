@@ -27,7 +27,21 @@ export default function SynthesisPage() {
       }));
       setGeneratedData(mockData);
       setIsGenerating(false);
-    }, 2500);
+    }, 1500);
+  };
+
+  const handleExportCSV = () => {
+    if (generatedData.length === 0) return;
+    const headers = ["id", "baseline_value", "accelerations", "decelerations", "variability", "class"];
+    const rows = generatedData.map(d => [d.id, d.baseline, d.accelerations, d.decelerations, d.variability, d.class].join(","));
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `synthetic_ctg_${classTarget.toLowerCase()}_${samples}_samples.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -138,7 +152,10 @@ export default function SynthesisPage() {
                 </h2>
                 
                 {generatedData.length > 0 && (
-                  <button className="flex items-center gap-2 bg-background hover:bg-surface-border border border-surface-border text-foreground px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm">
+                  <button 
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-2 bg-clinical-600 hover:bg-clinical-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium shadow-sm"
+                  >
                     <Download className="w-4 h-4" /> Export CSV
                   </button>
                 )}
