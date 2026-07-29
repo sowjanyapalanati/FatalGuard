@@ -39,10 +39,15 @@ interface BedData {
 }
 
 export default function CentralStationPage() {
+  const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<"ALL" | "HIGH" | "MEDIUM" | "LOW">("ALL");
   const [muted, setMuted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedBed, setSelectedBed] = useState<BedData | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize 8 beds with realistic continuous physiological signals
   const [beds, setBeds] = useState<BedData[]>(() => {
@@ -53,8 +58,8 @@ export default function CentralStationPage() {
       { bedId: "Bed-104", roomName: "Labor Room 4", patientMrn: "MRN-004", patientName: "Maria Garcia", gestationalAge: 36, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
       { bedId: "Bed-105", roomName: "Labor Room 5", patientMrn: "MRN-005", patientName: "Chloe Bennett", gestationalAge: 39, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
       { bedId: "Bed-106", roomName: "Labor Room 6", patientMrn: "MRN-006", patientName: "Hannah Davis", gestationalAge: 37, riskLevel: "MEDIUM" as const, riskColor: "#f59e0b", status: "Suspect" as const },
-      { bedId: "Bed-107", roomName: "Labor Room 7", patientMrn: "MRN-007", patientName: "Jessica Alba", gestationalAge: 38, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
-      { bedId: "Bed-108", roomName: "Labor Room 8", patientMrn: "MRN-008", patientName: "Rachel Zane", gestationalAge: 41, riskLevel: "HIGH" as const, riskColor: "#ef4444", status: "Pathological" as const },
+      { bedId: "Bed-107", roomName: "Labor Room 7", patientMrn: "MRN-007", patientName: "Priya Sharma", gestationalAge: 38, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
+      { bedId: "Bed-108", roomName: "Labor Room 8", patientMrn: "MRN-008", patientName: "Olivia Taylor", gestationalAge: 41, riskLevel: "HIGH" as const, riskColor: "#ef4444", status: "Pathological" as const },
     ];
 
     return defaultBeds.map(b => {
@@ -315,11 +320,15 @@ export default function CentralStationPage() {
 
                 {/* Mini ECharts Telemetry Waveform */}
                 <div className="h-28 bg-surface-secondary/60 rounded-xl overflow-hidden border border-surface-border p-1 my-2">
-                  <ReactECharts
-                    option={getMiniChartOption(bed.history, bed.riskColor)}
-                    style={{ height: "100%", width: "100%" }}
-                    opts={{ renderer: "canvas" }}
-                  />
+                  {mounted ? (
+                    <ReactECharts
+                      option={getMiniChartOption(bed.history, bed.riskColor)}
+                      style={{ height: "100%", width: "100%" }}
+                      opts={{ renderer: "canvas" }}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[10px] text-foreground/40 font-mono">Loading telemetry...</div>
+                  )}
                 </div>
 
                 {/* Footer Controls */}

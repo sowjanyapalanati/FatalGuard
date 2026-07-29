@@ -63,16 +63,26 @@ interface AlertEvent {
 
 // ── Dashboard Page ────────────────────────────────────────────
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
   const [connected, setConnected] = useState(false);
   const [patients, setPatients] = useState<Record<string, PatientStatus>>({});
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [totalPredictions, setTotalPredictions] = useState(0);
   const [isDemo, setIsDemo] = useState(true);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const DEMO_ROSTER = [
     { id: "MRN-001", name: "Sarah Connor", age: 28, ga: 38, baseFhr: 138, risk: "LOW" as const, color: "#22c55e", rec: "Reassuring baseline FHR trace. Continue standard intrapartum observation." },
     { id: "MRN-002", name: "Amara Johnson", age: 32, ga: 34, baseFhr: 156, risk: "MEDIUM" as const, color: "#f59e0b", rec: "Moderate baseline tachycardia detected. Evaluate maternal temperature and hydration." },
-    { id: "MRN-003", name: "Elena Lin", age: 24, ga: 40, baseFhr: 172, risk: "HIGH" as const, color: "#ef4444", rec: "Severe baseline tachycardia with late decelerations. Prepare immediate clinical intervention." }
+    { id: "MRN-003", name: "Elena Lin", age: 24, ga: 40, baseFhr: 172, risk: "HIGH" as const, color: "#ef4444", rec: "Severe baseline tachycardia with late decelerations. Prepare immediate clinical intervention." },
+    { id: "MRN-004", name: "Maria Garcia", age: 35, ga: 36, baseFhr: 142, risk: "LOW" as const, color: "#22c55e", rec: "Normal baseline variability. Re-assess in 30 minutes." },
+    { id: "MRN-005", name: "Chloe Bennett", age: 29, ga: 39, baseFhr: 135, risk: "LOW" as const, color: "#22c55e", rec: "Stable intrapartum CTG trace. Continue routine monitoring." },
+    { id: "MRN-006", name: "Hannah Davis", age: 31, ga: 37, baseFhr: 160, risk: "MEDIUM" as const, color: "#f59e0b", rec: "Mild tachycardia detected in twin B telemetry. Monitor closely." },
+    { id: "MRN-007", name: "Priya Sharma", age: 27, ga: 38, baseFhr: 140, risk: "LOW" as const, color: "#22c55e", rec: "Normal baseline reactivity. Continue standard care." },
+    { id: "MRN-008", name: "Olivia Taylor", age: 33, ga: 41, baseFhr: 95, risk: "HIGH" as const, color: "#ef4444", rec: "Fetal bradycardia detected. Immediate bedside clinical assessment required." },
   ];
 
   useEffect(() => {

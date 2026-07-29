@@ -247,6 +247,8 @@ export async function getPatients(
       { id: "4", mrn: "MRN-004", name: "Maria Garcia", age: 35, gestational_age: 36, gravida: 3, para: 2, risk_factors: ["Previous C-Section"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward B" },
       { id: "5", mrn: "MRN-005", name: "Chloe Bennett", age: 29, gestational_age: 39, gravida: 1, para: 0, risk_factors: [], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "Delivery Suite 104" },
       { id: "6", mrn: "MRN-006", name: "Hannah Davis", age: 31, gestational_age: 37, gravida: 2, para: 1, risk_factors: ["Twin Gestation"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "High-Risk Ward A" },
+      { id: "7", mrn: "MRN-007", name: "Priya Sharma", age: 27, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Polyhydramnios"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 105" },
+      { id: "8", mrn: "MRN-008", name: "Olivia Taylor", age: 33, gestational_age: 41, gravida: 2, para: 1, risk_factors: ["Post-Term Pregnancy"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward C" },
     ];
   }
 }
@@ -266,7 +268,7 @@ export async function getPatient(id: string): Promise<Patient> {
     return match || {
       id: id,
       mrn: id,
-      name: "Confidential Patient",
+      name: `Patient ${id}`,
       age: 29,
       gestational_age: 38,
       gravida: 1,

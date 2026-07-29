@@ -31,25 +31,29 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       } catch (e) {
         console.warn("Patient not in DB, using mock data", e);
         const defaultPatients = [
-          { id: "1", mrn: "MRN-001", name: "Confidential", age: 28, gestational_age: 38, gravida: 1, para: 0, risk_factors: [], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Smith", ward: "Maternity Ward A" },
-          { id: "2", mrn: "MRN-002", name: "Confidential", age: 32, gestational_age: 34, gravida: 2, para: 1, risk_factors: ["Gestational Diabetes"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Jones", ward: "Maternity Ward B" },
-          { id: "3", mrn: "MRN-003", name: "Confidential", age: 24, gestational_age: 40, gravida: 1, para: 0, risk_factors: ["Hypertension"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Smith", ward: "Maternity Ward A" },
-          { id: "4", mrn: "MRN-004", name: "Confidential", age: 35, gestational_age: 36, gravida: 3, para: 2, risk_factors: ["Previous C-Section"], is_active: false, created_at: new Date(Date.now() - 86400000).toISOString(), assigned_doctor: "Dr. Jones", ward: "General Ward" },
+          { id: "1", mrn: "MRN-001", name: "Sarah Connor", age: 28, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Mild Preeclampsia"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 101" },
+          { id: "2", mrn: "MRN-002", name: "Amara Johnson", age: 32, gestational_age: 34, gravida: 2, para: 1, risk_factors: ["Gestational Diabetes"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "Delivery Suite 102" },
+          { id: "3", mrn: "MRN-003", name: "Elena Lin", age: 24, gestational_age: 40, gravida: 1, para: 0, risk_factors: ["Gestational Hypertension"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 103" },
+          { id: "4", mrn: "MRN-004", name: "Maria Garcia", age: 35, gestational_age: 36, gravida: 3, para: 2, risk_factors: ["Previous C-Section"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward B" },
+          { id: "5", mrn: "MRN-005", name: "Chloe Bennett", age: 29, gestational_age: 39, gravida: 1, para: 0, risk_factors: [], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "Delivery Suite 104" },
+          { id: "6", mrn: "MRN-006", name: "Hannah Davis", age: 31, gestational_age: 37, gravida: 2, para: 1, risk_factors: ["Twin Gestation"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "High-Risk Ward A" },
+          { id: "7", mrn: "MRN-007", name: "Priya Sharma", age: 27, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Polyhydramnios"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 105" },
+          { id: "8", mrn: "MRN-008", name: "Olivia Taylor", age: 33, gestational_age: 41, gravida: 2, para: 1, risk_factors: ["Post-Term Pregnancy"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward C" },
         ];
         
-        const matched = defaultPatients.find(p => p.mrn === resolvedParams.id);
+        const matched = defaultPatients.find(p => p.mrn === resolvedParams.id || p.id === resolvedParams.id);
         
         setPatient(matched || {
-          id: "mock-id",
+          id: resolvedParams.id,
           mrn: resolvedParams.id,
-          name: "Confidential",
+          name: `Patient ${resolvedParams.id}`,
           age: 28,
-          gestational_age: 34,
+          gestational_age: 38,
           gravida: 1,
           para: 0,
-          risk_factors: ["Gestational Diabetes"],
-          assigned_doctor: "Dr. Smith",
-          ward: "Maternity - Bed 4",
+          risk_factors: ["Intrapartum Telemetry"],
+          assigned_doctor: "Dr. Elena Rostova",
+          ward: "Delivery Suite 101",
           is_active: true,
           created_at: new Date().toISOString()
         });
@@ -62,7 +66,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   }, [resolvedParams.id]);
 
   if (loading) {
-    return <div className="min-h-screen p-8 flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen p-8 flex items-center justify-center">Loading patient profile...</div>;
   }
 
   if (!patient) return null;
@@ -78,11 +82,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           {/* Patient Profile Sidebar */}
           <div className="col-span-1 glass-card p-6 border-surface-border shadow-sm">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-gray-500" />
+            <div className="w-12 h-12 bg-clinical-500/20 text-clinical-400 rounded-full flex items-center justify-center font-bold text-base border border-clinical-500/30">
+              {patient.name.split(' ').map(n => n[0]).join('')}
             </div>
             <div>
-              <h2 className="text-xl font-bold">{patient.mrn}</h2>
+              <h2 className="text-xl font-bold">{patient.name}</h2>
+              <p className="text-xs font-mono text-foreground/60">{patient.mrn}</p>
               <span className="text-sm text-green-600 dark:text-green-400 font-medium">
                 Active Monitoring
               </span>

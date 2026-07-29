@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ClipboardList,
@@ -30,10 +30,36 @@ interface LaborEvent {
 }
 
 export default function PartogramPage() {
+  const [mounted, setMounted] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState("MRN-001");
   const [patientName, setPatientName] = useState("Sarah Connor");
   const [gestationalAge, setGestationalAge] = useState(38);
   const [gravidaPara, setGravidaPara] = useState("G1 P0");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const PATIENT_MAP: Record<string, { name: string; ga: number; gp: string }> = {
+    "MRN-001": { name: "Sarah Connor", ga: 38, gp: "G1 P0" },
+    "MRN-002": { name: "Amara Johnson", ga: 34, gp: "G2 P1" },
+    "MRN-003": { name: "Elena Lin", ga: 40, gp: "G1 P0" },
+    "MRN-004": { name: "Maria Garcia", ga: 36, gp: "G3 P2" },
+    "MRN-005": { name: "Chloe Bennett", ga: 39, gp: "G1 P0" },
+    "MRN-006": { name: "Hannah Davis", ga: 37, gp: "G2 P1" },
+    "MRN-007": { name: "Priya Sharma", ga: 38, gp: "G1 P0" },
+    "MRN-008": { name: "Olivia Taylor", ga: 41, gp: "G2 P1" },
+  };
+
+  const handleSelectPatient = (mrn: string) => {
+    setSelectedPatient(mrn);
+    const p = PATIENT_MAP[mrn];
+    if (p) {
+      setPatientName(p.name);
+      setGestationalAge(p.ga);
+      setGravidaPara(p.gp);
+    }
+  };
   const [membranesStatus, setMembranesStatus] = useState("Intact");
 
   const [cervicalData, setCervicalData] = useState([
@@ -95,12 +121,17 @@ export default function PartogramPage() {
           <div className="flex items-center gap-3">
             <select
               value={selectedPatient}
-              onChange={e => setSelectedPatient(e.target.value)}
+              onChange={e => handleSelectPatient(e.target.value)}
               className="bg-surface-secondary border border-surface-border rounded-xl px-4 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-clinical-500"
             >
               <option value="MRN-001">MRN-001 — Sarah Connor (Suite 101)</option>
               <option value="MRN-002">MRN-002 — Amara Johnson (Suite 102)</option>
               <option value="MRN-003">MRN-003 — Elena Lin (Suite 103)</option>
+              <option value="MRN-004">MRN-004 — Maria Garcia (Ward B)</option>
+              <option value="MRN-005">MRN-005 — Chloe Bennett (Suite 104)</option>
+              <option value="MRN-006">MRN-006 — Hannah Davis (Ward A)</option>
+              <option value="MRN-007">MRN-007 — Priya Sharma (Suite 105)</option>
+              <option value="MRN-008">MRN-008 — Olivia Taylor (Ward C)</option>
             </select>
 
             <button
@@ -167,7 +198,11 @@ export default function PartogramPage() {
           </div>
 
           <div className="h-96 bg-surface-secondary/40 rounded-2xl p-4 border border-surface-border">
-            <ReactECharts option={getPartogramOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+            {mounted ? (
+              <ReactECharts option={getPartogramOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+            ) : (
+              <div className="h-full flex items-center justify-center text-xs text-foreground/40 font-mono">Loading chart...</div>
+            )}
           </div>
         </div>
 
@@ -178,7 +213,11 @@ export default function PartogramPage() {
               <Activity className="w-5 h-5 text-cyan-400" /> Uterine Contractions Frequency (per 10 min)
             </h3>
             <div className="h-64 bg-surface-secondary/40 rounded-2xl p-4 border border-surface-border">
-              <ReactECharts option={getContractionsOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+              {mounted ? (
+                <ReactECharts option={getContractionsOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-xs text-foreground/40 font-mono">Loading chart...</div>
+              )}
             </div>
           </div>
 
@@ -187,7 +226,11 @@ export default function PartogramPage() {
               <Heart className="w-5 h-5 text-red-400" /> Maternal Vital Signs & Baseline FHR
             </h3>
             <div className="h-64 bg-surface-secondary/40 rounded-2xl p-4 border border-surface-border">
-              <ReactECharts option={getVitalsOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+              {mounted ? (
+                <ReactECharts option={getVitalsOption(cervicalData)} style={{ height: "100%", width: "100%" }} />
+              ) : (
+                <div className="h-full flex items-center justify-center text-xs text-foreground/40 font-mono">Loading chart...</div>
+              )}
             </div>
           </div>
         </div>
