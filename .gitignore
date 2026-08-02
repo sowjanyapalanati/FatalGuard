@@ -20,11 +20,9 @@ __pycache__/
 node_modules/
 **/node_modules/
 
-# ML Model Binaries (large files — use DVC or Git LFS for these)
-*.pt
-*.onnx
-*.pkl
-ml_pipeline/models/
+# ML Model Binaries — exclude large PyTorch weights only
+# ONNX, scaler.pkl, and .ckpt are small and required for the app to run
+ml_pipeline/models/*.pt
 
 # Local Databases & Logs
 *.db
