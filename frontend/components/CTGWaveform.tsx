@@ -158,7 +158,7 @@ export const CTGWaveform = React.memo(function CTGWaveform({ patientId, data, cu
         <ReactECharts
           option={option}
           style={{ height: '100%', width: '100%' }}
-          notMerge={true}
+          notMerge={false}
           lazyUpdate={true}
         />
       </div>

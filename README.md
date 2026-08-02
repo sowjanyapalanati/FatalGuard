@@ -8,7 +8,7 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C.svg)](https://pytorch.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
-[![Next.js 15](https://img.shields.io/badge/Next.js-15.0-000000.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/Frontend-React%2019-61DAFB.svg)](https://react.dev/)
 [![Kafka](https://img.shields.io/badge/Apache%20Kafka-3.5+-231F20.svg)](https://kafka.apache.org/)
 [![HL7 FHIR R4](https://img.shields.io/badge/Standard-HL7%20FHIR%20R4-e06f1f.svg)](https://hl7.org/fhir/)
 

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { DashboardLayout } from "../../../components/DashboardLayout";
+import { usePatients } from "../../../context/PatientContext";
 
 interface AlertRecord {
   id: string;
@@ -18,51 +19,39 @@ interface AlertRecord {
 }
 
 export default function AlertsPage() {
+  const { patients, getPatientByMrn } = usePatients();
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [showUnresolvedOnly, setShowUnresolvedOnly] = useState(false);
 
-  // Generate historical alerts
+  // Generate historical alerts — seeded dynamically from live patient roster
   useEffect(() => {
-    const historicalAlerts: AlertRecord[] = [
-      {
-        id: "ALT-001",
-        patient_id: "MRN-001",
-        timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        alert_type: "BRADYCARDIA",
-        severity: "CRITICAL",
-        message: "Severe deceleration detected. FHR dropped below 100 bpm.",
-        resolved: false,
-      },
-      {
-        id: "ALT-002",
-        patient_id: "MRN-002",
-        timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-        alert_type: "TACHYCARDIA",
-        severity: "WARNING",
-        message: "FHR baseline consistently above 160 bpm.",
-        resolved: true,
-      },
-      {
-        id: "ALT-003",
-        patient_id: "MRN-005",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        alert_type: "LATE_DECELERATION",
-        severity: "CRITICAL",
-        message: "Late decelerations occurring with >50% of contractions.",
-        resolved: true,
-      },
-      {
-        id: "ALT-004",
-        patient_id: "MRN-003",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-        alert_type: "VARIABILITY_LOSS",
-        severity: "WARNING",
-        message: "Absent baseline variability detected over 10 minutes.",
-        resolved: false,
-      }
+    if (patients.length === 0) return;
+
+    const alertTypes = [
+      { type: "BRADYCARDIA",      severity: "CRITICAL" as const, message: "Severe deceleration detected. FHR dropped below 100 bpm." },
+      { type: "TACHYCARDIA",      severity: "WARNING"  as const, message: "FHR baseline consistently above 160 bpm." },
+      { type: "LATE_DECELERATION",severity: "CRITICAL" as const, message: "Late decelerations occurring with >50% of contractions." },
+      { type: "VARIABILITY_LOSS", severity: "WARNING"  as const, message: "Absent baseline variability detected over 10 minutes." },
+      { type: "PROLONGED_DECEL",  severity: "CRITICAL" as const, message: "Prolonged deceleration lasting >3 minutes." },
+      { type: "SINUSOIDAL",       severity: "WARNING"  as const, message: "Possible sinusoidal pattern detected. Fetal anaemia risk." },
     ];
-    setAlerts(historicalAlerts);
-  }, []);
+
+    const seeded: AlertRecord[] = patients.slice(0, 6).map((p, i) => {
+      const tmpl = alertTypes[i % alertTypes.length];
+      const offsetMs = [5, 45, 120, 300, 480, 600][i] * 60 * 1000;
+      return {
+        id: `ALT-${String(i + 1).padStart(3, "0")}`,
+        patient_id: p.mrn,
+        timestamp: new Date(Date.now() - offsetMs).toISOString(),
+        alert_type: tmpl.type,
+        severity: tmpl.severity,
+        message: `[${p.name}] ${tmpl.message}`,
+        resolved: i % 3 === 1,
+      };
+    });
+
+    setAlerts(seeded);
+  }, [patients]);
 
   const toggleResolve = (id: string) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, resolved: !a.resolved } : a));
@@ -154,8 +143,9 @@ export default function AlertsPage() {
                         {alert.severity}
                       </span>
                     </td>
-                    <td className="p-4 font-semibold text-sm text-foreground">
-                      {alert.patient_id}
+                    <td className="p-4 text-sm text-foreground">
+                      <div className="font-bold">{getPatientByMrn(alert.patient_id)?.name || alert.patient_id}</div>
+                      <div className="text-[11px] font-mono text-foreground/50">{alert.patient_id}</div>
                     </td>
                     <td className="p-4 text-sm text-foreground/80 max-w-md truncate">
                       {alert.message}

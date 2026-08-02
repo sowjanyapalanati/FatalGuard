@@ -5,43 +5,15 @@ import Link from "next/link";
 import { ArrowLeft, Users, Search, Activity, ChevronRight, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "../../../components/DashboardLayout";
-import { getPatients, Patient, createPatient } from "../../../lib/api";
+import { usePatients } from "../../../context/PatientContext";
 
 export default function PatientsDirectoryPage() {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { patients, loading, addPatient } = usePatients();
   const [search, setSearch] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPatientForm, setNewPatientForm] = useState({
     mrn: "", name: "", age: 30, gestational_age: 38, gravida: 1, para: 0, ward: ""
   });
-
-  useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        setLoading(true);
-        const data = await getPatients();
-        setPatients(data);
-      } catch (e) {
-        console.warn("Failed to fetch patients, using mocks", e);
-        // Fallback mock data
-        setPatients([
-          { id: "1", mrn: "MRN-001", name: "Sarah Connor", age: 28, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Mild Preeclampsia"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 101" },
-          { id: "2", mrn: "MRN-002", name: "Amara Johnson", age: 32, gestational_age: 34, gravida: 2, para: 1, risk_factors: ["Gestational Diabetes"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "Delivery Suite 102" },
-          { id: "3", mrn: "MRN-003", name: "Elena Lin", age: 24, gestational_age: 40, gravida: 1, para: 0, risk_factors: ["Gestational Hypertension"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 103" },
-          { id: "4", mrn: "MRN-004", name: "Maria Garcia", age: 35, gestational_age: 36, gravida: 3, para: 2, risk_factors: ["Previous C-Section"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward B" },
-          { id: "5", mrn: "MRN-005", name: "Chloe Bennett", age: 29, gestational_age: 39, gravida: 1, para: 0, risk_factors: [], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "Delivery Suite 104" },
-          { id: "6", mrn: "MRN-006", name: "Hannah Davis", age: 31, gestational_age: 37, gravida: 2, para: 1, risk_factors: ["Twin Gestation"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "High-Risk Ward A" },
-          { id: "7", mrn: "MRN-007", name: "Priya Sharma", age: 27, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Polyhydramnios"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 105" },
-          { id: "8", mrn: "MRN-008", name: "Olivia Taylor", age: 33, gestational_age: 41, gravida: 2, para: 1, risk_factors: ["Post-Term Pregnancy"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward C" },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPatients();
-  }, []);
 
   const filteredPatients = patients.filter(p => 
     p.mrn.toLowerCase().includes(search.toLowerCase()) || 
@@ -80,7 +52,20 @@ export default function PatientsDirectoryPage() {
               />
             </div>
             <button 
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                const nextSno = patients.length + 1;
+                const nextMrn = `AP-FG-${String(nextSno).padStart(3, '0')}`;
+                setNewPatientForm({
+                  mrn: nextMrn,
+                  name: "",
+                  age: 26,
+                  gestational_age: 38,
+                  gravida: 1,
+                  para: 0,
+                  ward: "Vijayawada Labor Suite 107"
+                });
+                setIsAddModalOpen(true);
+              }}
               className="bg-clinical-600 hover:bg-clinical-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition-colors"
             >
               + Add Patient
@@ -92,6 +77,7 @@ export default function PatientsDirectoryPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-secondary/80 border-b border-surface-border text-foreground/60 uppercase tracking-wider text-xs">
               <tr>
+                <th className="px-4 py-4 font-semibold text-center w-16">S.No</th>
                 <th className="px-6 py-4 font-semibold">Patient Name</th>
                 <th className="px-6 py-4 font-semibold">MRN</th>
                 <th className="px-6 py-4 font-semibold">Gestational Age</th>
@@ -103,13 +89,13 @@ export default function PatientsDirectoryPage() {
             <tbody className="divide-y divide-surface-border">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-foreground/50">
+                  <td colSpan={7} className="px-6 py-12 text-center text-foreground/50">
                     Loading roster...
                   </td>
                 </tr>
               ) : filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-foreground/50">
+                  <td colSpan={7} className="px-6 py-12 text-center text-foreground/50">
                     No patients found matching your search.
                   </td>
                 </tr>
@@ -122,6 +108,9 @@ export default function PatientsDirectoryPage() {
                     key={patient.id} 
                     className="hover:bg-surface-secondary/30 transition-colors group"
                   >
+                    <td className="px-4 py-4 text-center font-mono font-bold text-foreground/70">
+                      {idx + 1}
+                    </td>
                     <td className="px-6 py-4 font-bold text-foreground">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-clinical-500/20 text-clinical-400 flex items-center justify-center border border-clinical-500/30 shadow-sm font-bold text-xs">
@@ -194,9 +183,9 @@ export default function PatientsDirectoryPage() {
               <form className="space-y-4" onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const newPatient = await createPatient(newPatientForm as any);
-                  setPatients([newPatient, ...patients]);
+                  await addPatient(newPatientForm as any);
                   setIsAddModalOpen(false);
+                  setNewPatientForm({ mrn: "", name: "", age: 30, gestational_age: 38, gravida: 1, para: 0, ward: "" });
                 } catch (e: any) {
                   alert(e.message);
                 }

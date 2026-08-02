@@ -25,11 +25,11 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 import { CTGWaveform } from "../../../components/CTGWaveform";
 import { getPatients, Patient } from "../../../lib/api";
 import { DashboardLayout } from "../../../components/DashboardLayout";
+import { usePatients } from "../../../context/PatientContext";
 
 export default function AnalysisPage() {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, loading } = usePatients();
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"BENCHMARKS" | "PATIENT">("BENCHMARKS");
 
   // Live dynamic telemetry state for selected patient waveform analysis
@@ -62,39 +62,10 @@ export default function AnalysisPage() {
   }, []);
 
   useEffect(() => {
-    const fetchActivePatients = async () => {
-      try {
-        setLoading(true);
-        const pList = await getPatients(true, 50);
-        setPatients(pList);
-        if (pList.length > 0) {
-          setSelectedPatientId(pList[0].mrn);
-        }
-      } catch (e) {
-        console.warn("Could not fetch patients, using mock", e);
-        const mockP: Patient = {
-          id: "mock-id",
-          mrn: "MRN-001",
-          name: "Confidential",
-          age: 28,
-          gestational_age: 34,
-          gravida: 1,
-          para: 0,
-          risk_factors: ["Gestational Diabetes"],
-          assigned_doctor: "Dr. Smith",
-          ward: "Maternity - Bed 4",
-          is_active: true,
-          created_at: new Date().toISOString()
-        };
-        setPatients([mockP]);
-        setSelectedPatientId("MRN-001");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchActivePatients();
-  }, []);
+    if (patients.length > 0 && !selectedPatientId) {
+      setSelectedPatientId(patients[0].mrn);
+    }
+  }, [patients, selectedPatientId]);
 
   const selectedPatient = patients.find(p => p.mrn === selectedPatientId);
 

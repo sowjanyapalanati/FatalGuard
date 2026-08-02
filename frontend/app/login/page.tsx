@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Shield, Lock, User, Heart, ArrowRight, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,6 +36,17 @@ export default function LoginPage() {
 
       const { access_token } = await res.json();
       document.cookie = `fetalguard_auth=${access_token}; path=/; max-age=86400`;
+      
+      let assignedRole = "OBSTETRICIAN";
+      if (username.toLowerCase().includes("admin")) assignedRole = "ADMIN";
+      else if (username.toLowerCase().includes("nurse") || username.toLowerCase().includes("priya")) assignedRole = "NURSE";
+      else if (username.toLowerCase().includes("eng") || username.toLowerCase().includes("kumar") || username.toLowerCase().includes("tech")) assignedRole = "HARDWARE_TECH";
+      
+      if (typeof window !== "undefined") {
+        localStorage.setItem("fetalguard_active_role", assignedRole);
+        localStorage.setItem("fetalguard_user", JSON.stringify({ username, role: assignedRole }));
+        window.dispatchEvent(new Event("fetalguard_role_change"));
+      }
       router.push("/");
     } catch (err: any) {
       // If network fetch fails (e.g. patient_service backend on port 8001 is offline or un-reachable)
@@ -42,8 +54,16 @@ export default function LoginPage() {
         console.warn("Patient auth API offline — logging in via Local Clinician Mode", err);
         const mockToken = `local_token_${username}_${Date.now()}`;
         document.cookie = `fetalguard_auth=${mockToken}; path=/; max-age=86400`;
+        
+        let assignedRole = "OBSTETRICIAN";
+        if (username.toLowerCase().includes("admin")) assignedRole = "ADMIN";
+        else if (username.toLowerCase().includes("nurse") || username.toLowerCase().includes("priya")) assignedRole = "NURSE";
+        else if (username.toLowerCase().includes("eng") || username.toLowerCase().includes("kumar") || username.toLowerCase().includes("tech")) assignedRole = "HARDWARE_TECH";
+
         if (typeof window !== "undefined") {
-          localStorage.setItem("fetalguard_user", JSON.stringify({ username, role: "doctor" }));
+          localStorage.setItem("fetalguard_active_role", assignedRole);
+          localStorage.setItem("fetalguard_user", JSON.stringify({ username, role: assignedRole }));
+          window.dispatchEvent(new Event("fetalguard_role_change"));
         }
         router.push("/");
         return;
@@ -152,9 +172,9 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-clinical-600 hover:text-clinical-500 transition-colors">
-                  Forgot ID?
-                </a>
+                <Link href="/forgot-password" className="font-medium text-clinical-600 hover:text-clinical-500 transition-colors">
+                  Forgot Password?
+                </Link>
               </div>
             </div>
 

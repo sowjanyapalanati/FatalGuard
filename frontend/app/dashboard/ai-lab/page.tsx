@@ -16,15 +16,35 @@ import {
   FileText,
   BarChart3,
   Layers,
-  ChevronRight
+  ChevronRight,
+  User
 } from "lucide-react";
 import { DashboardLayout } from "../../../components/DashboardLayout";
 import { predictCTG, CTGInput, PredictionResult } from "../../../lib/api";
+import { usePatients } from "../../../context/PatientContext";
 import ReactECharts from "echarts-for-react";
 
 export default function AILaboratoryPage() {
+  const { patients } = usePatients();
+  const [selectedMrn, setSelectedMrn] = useState<string>("");
   const [language, setLanguage] = useState("English");
   const [loading, setLoading] = useState(false);
+
+  const handleSelectPatient = (mrn: string) => {
+    setSelectedMrn(mrn);
+    const found = patients.find(p => p.mrn === mrn || p.id === mrn);
+    if (found) {
+      const hasPreeclampsia = found.risk_factors.some(r => r.toLowerCase().includes("preeclampsia") || r.toLowerCase().includes("hypertension"));
+      const hasDiabetes = found.risk_factors.some(r => r.toLowerCase().includes("diabetes"));
+      if (hasPreeclampsia) {
+        presetPathological();
+      } else if (hasDiabetes) {
+        presetSuspect();
+      } else {
+        presetNormal();
+      }
+    }
+  };
 
   // 19 Interactive CTG Parameters
   const [params, setParams] = useState<CTGInput>({
@@ -119,8 +139,21 @@ export default function AILaboratoryPage() {
             </div>
           </div>
 
-          {/* Preset Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Patient Selector & Preset Buttons */}
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={selectedMrn}
+              onChange={e => handleSelectPatient(e.target.value)}
+              className="bg-surface-secondary border border-surface-border rounded-xl px-3 py-1.5 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-clinical-500"
+            >
+              <option value="">Select Patient for Simulation...</option>
+              {patients.map(p => (
+                <option key={p.id || p.mrn} value={p.mrn}>
+                  {p.mrn} — {p.name} ({p.gestational_age}w)
+                </option>
+              ))}
+            </select>
+
             <button onClick={presetNormal} className="px-3 py-1.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded-xl text-xs font-bold hover:bg-green-500/20 transition-colors">
               Preset Normal
             </button>

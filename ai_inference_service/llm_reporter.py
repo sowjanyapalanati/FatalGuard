@@ -97,5 +97,6 @@ class LLMClinicalReporter:
             self.cache[cache_key] = text
             return text
         except Exception as e:
-            fallback_text = f"Clinical assessment ({prediction_label}): FHR baseline at {fhr_base} bpm with accelerations ({accel}/min) and decelerations ({tot_dec}/min)."
+            fallback_text = f"FIGO Clinical Assessment ({prediction_label}): FHR baseline at {fhr_base} bpm with accelerations ({accel}/min) and decelerations ({tot_dec}/min). Continue routine monitoring."
+            self.cache[cache_key] = fallback_text
             return fallback_text

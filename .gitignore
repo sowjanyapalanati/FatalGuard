@@ -1,10 +1,16 @@
+# Environment Files & Secrets
+.env
+.env.local
+.env.*
+!.env.example
+
 # Virtual Environments
 venv/
 **/venv/
 env/
-.env
+.venv/
 
-# Cache
+# Python & Node Caches
 __pycache__/
 **/__pycache__/
 *.pyc
@@ -14,16 +20,20 @@ __pycache__/
 node_modules/
 **/node_modules/
 
-# Models & Data
-ml_pipeline/models/*.pt
-ml_pipeline/mlruns/
-ml_pipeline/data/raw/
-ml_pipeline/data/processed/
-data_acquisition/data/raw/
-*.zip
+# ML Model Binaries (large files — use DVC or Git LFS for these)
+*.pt
+*.onnx
+*.pkl
+ml_pipeline/models/
 
-# OS Files
+# Local Databases & Logs
+*.db
+*.sqlite
+*.log
+logs/
+
+# OS & IDE Files
 .DS_Store
 Thumbs.db
- 
-frontend/.env.local
+.vscode/
+.idea/

@@ -22,6 +22,7 @@ import { CTGWaveform } from "../components/CTGWaveform";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { FeatureRadarChart } from "../components/FeatureRadarChart";
 import { DashboardLayout } from "../components/DashboardLayout";
+import { usePatients } from "../context/PatientContext";
 
 // ── Types ─────────────────────────────────────────────────────
 interface PredictionEvent {
@@ -63,27 +64,18 @@ interface AlertEvent {
 
 // ── Dashboard Page ────────────────────────────────────────────
 export default function DashboardPage() {
+  const { patients: globalPatients } = usePatients();
   const [mounted, setMounted] = useState(false);
   const [connected, setConnected] = useState(false);
   const [patients, setPatients] = useState<Record<string, PatientStatus>>({});
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
   const [totalPredictions, setTotalPredictions] = useState(0);
-  const [isDemo, setIsDemo] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
+  const [alertsMuted, setAlertsMuted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const DEMO_ROSTER = [
-    { id: "MRN-001", name: "Sarah Connor", age: 28, ga: 38, baseFhr: 138, risk: "LOW" as const, color: "#22c55e", rec: "Reassuring baseline FHR trace. Continue standard intrapartum observation." },
-    { id: "MRN-002", name: "Amara Johnson", age: 32, ga: 34, baseFhr: 156, risk: "MEDIUM" as const, color: "#f59e0b", rec: "Moderate baseline tachycardia detected. Evaluate maternal temperature and hydration." },
-    { id: "MRN-003", name: "Elena Lin", age: 24, ga: 40, baseFhr: 172, risk: "HIGH" as const, color: "#ef4444", rec: "Severe baseline tachycardia with late decelerations. Prepare immediate clinical intervention." },
-    { id: "MRN-004", name: "Maria Garcia", age: 35, ga: 36, baseFhr: 142, risk: "LOW" as const, color: "#22c55e", rec: "Normal baseline variability. Re-assess in 30 minutes." },
-    { id: "MRN-005", name: "Chloe Bennett", age: 29, ga: 39, baseFhr: 135, risk: "LOW" as const, color: "#22c55e", rec: "Stable intrapartum CTG trace. Continue routine monitoring." },
-    { id: "MRN-006", name: "Hannah Davis", age: 31, ga: 37, baseFhr: 160, risk: "MEDIUM" as const, color: "#f59e0b", rec: "Mild tachycardia detected in twin B telemetry. Monitor closely." },
-    { id: "MRN-007", name: "Priya Sharma", age: 27, ga: 38, baseFhr: 140, risk: "LOW" as const, color: "#22c55e", rec: "Normal baseline reactivity. Continue standard care." },
-    { id: "MRN-008", name: "Olivia Taylor", age: 33, ga: 41, baseFhr: 95, risk: "HIGH" as const, color: "#ef4444", rec: "Fetal bradycardia detected. Immediate bedside clinical assessment required." },
-  ];
 
   useEffect(() => {
     const ws = getSocket();
@@ -118,84 +110,107 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Initialize patient roster with dynamic baseline history
+  // Initialize & sync patient roster with dynamic baseline history from globalPatients
   useEffect(() => {
-    const initialPatients: Record<string, PatientStatus> = {};
+    if (!globalPatients || globalPatients.length === 0) return;
 
-    DEMO_ROSTER.forEach((p) => {
-      const now = new Date();
-      const history: PredictionEvent[] = Array.from({ length: 40 }, (_, i) => {
-        const time = new Date(now.getTime() - (40 - i) * 1000).toISOString();
-        const fhrVal = p.baseFhr + Math.sin(i / 3) * 6 + (Math.random() * 4 - 2);
-        return {
-          patient_id: p.id,
-          timestamp: time,
-          prediction: {
-            prediction: p.risk === "LOW" ? "Normal" : p.risk === "MEDIUM" ? "Suspect" : "Pathological",
-            confidence: p.risk === "LOW" ? 0.96 : p.risk === "MEDIUM" ? 0.88 : 0.94,
-            probabilities: { Normal: p.risk === "LOW" ? 0.96 : 0.1, Suspect: p.risk === "MEDIUM" ? 0.88 : 0.1, Pathological: p.risk === "HIGH" ? 0.94 : 0.05 },
-            risk_level: p.risk,
-            risk_color: p.color,
-            recommendation: p.rec,
-            clinical_explanation: p.rec,
-            is_alert: p.risk !== "LOW",
-            inference_ms: 12.4
-          },
-          features_snapshot: {
-            baseline_value: fhrVal,
-            accelerations: p.risk === "LOW" ? 0.004 : 0,
-            fetal_movement: 0.002,
-            uterine_contractions: Math.sin(i / 4) > 0.6 ? 0.008 : 0.001,
-            light_decelerations: 0,
-            severe_decelerations: p.risk === "HIGH" ? 0.003 : 0,
-            prolongued_decelerations: 0,
-            abnormal_short_term_variability: p.risk === "HIGH" ? 72 : p.risk === "MEDIUM" ? 54 : 22,
-            mean_value_of_short_term_variability: 1.2,
-            percentage_of_time_with_abnormal_long_term_variability: 0,
-            mean_value_of_long_term_variability: 10,
-            histogram_width: 60,
-            histogram_min: fhrVal - 20,
-            histogram_max: fhrVal + 20,
-            histogram_mode: fhrVal,
-            histogram_mean: fhrVal,
-            histogram_median: fhrVal,
-            histogram_variance: 12,
-            histogram_tendency: 0
-          }
-        };
+    setPatients(prev => {
+      const updated: Record<string, PatientStatus> = { ...prev };
+
+      globalPatients.forEach((p, idx) => {
+        if (!updated[p.mrn]) {
+          const now = new Date();
+          const risk: "LOW" | "MEDIUM" | "HIGH" = idx % 3 === 2 ? "HIGH" : idx % 3 === 1 ? "MEDIUM" : "LOW";
+          const color = risk === "HIGH" ? "#ef4444" : risk === "MEDIUM" ? "#f59e0b" : "#22c55e";
+          const baseFhr = risk === "HIGH" ? 172 : risk === "MEDIUM" ? 156 : 138;
+          const rec = risk === "HIGH"
+            ? "Severe baseline tachycardia detected. Prepare immediate clinical intervention."
+            : risk === "MEDIUM"
+            ? "Moderate baseline tachycardia detected. Evaluate maternal temperature and hydration."
+            : "Reassuring baseline FHR trace. Continue standard intrapartum observation.";
+
+          const history: PredictionEvent[] = Array.from({ length: 40 }, (_, i) => {
+            const time = new Date(now.getTime() - (40 - i) * 1000).toISOString();
+            const fhrVal = baseFhr + Math.sin(i / 3) * 6 + (Math.random() * 4 - 2);
+            return {
+              patient_id: p.mrn,
+              timestamp: time,
+              prediction: {
+                prediction: risk === "LOW" ? "Normal" : risk === "MEDIUM" ? "Suspect" : "Pathological",
+                confidence: risk === "LOW" ? 0.96 : risk === "MEDIUM" ? 0.88 : 0.94,
+                probabilities: { Normal: risk === "LOW" ? 0.96 : 0.1, Suspect: risk === "MEDIUM" ? 0.88 : 0.1, Pathological: risk === "HIGH" ? 0.94 : 0.05 },
+                risk_level: risk,
+                risk_color: color,
+                recommendation: rec,
+                clinical_explanation: rec,
+                is_alert: risk !== "LOW",
+                inference_ms: 12.4
+              },
+              features_snapshot: {
+                baseline_value: fhrVal,
+                accelerations: risk === "LOW" ? 0.004 : 0,
+                fetal_movement: 0.002,
+                uterine_contractions: Math.sin(i / 4) > 0.6 ? 0.008 : 0.001,
+                light_decelerations: 0,
+                severe_decelerations: risk === "HIGH" ? 0.003 : 0,
+                prolongued_decelerations: 0,
+                abnormal_short_term_variability: risk === "HIGH" ? 72 : risk === "MEDIUM" ? 54 : 22,
+                mean_value_of_short_term_variability: 1.2,
+                percentage_of_time_with_abnormal_long_term_variability: 0,
+                mean_value_of_long_term_variability: 10,
+                histogram_width: 60,
+                histogram_min: fhrVal - 20,
+                histogram_max: fhrVal + 20,
+                histogram_mode: fhrVal,
+                histogram_mean: fhrVal,
+                histogram_median: fhrVal,
+                histogram_variance: 12,
+                histogram_tendency: 0
+              }
+            };
+          });
+
+          updated[p.mrn] = {
+            patient_id: p.mrn,
+            name: p.name,
+            age: p.age,
+            gestational_age: p.gestational_age,
+            latest: history[history.length - 1],
+            history: history,
+            lastUpdate: now
+          };
+        } else {
+          // Update patient metadata if changed
+          updated[p.mrn] = {
+            ...updated[p.mrn],
+            name: p.name,
+            age: p.age,
+            gestational_age: p.gestational_age
+          };
+        }
       });
 
-      initialPatients[p.id] = {
-        patient_id: p.id,
-        name: p.name,
-        age: p.age,
-        gestational_age: p.ga,
-        latest: history[history.length - 1],
-        history: history,
-        lastUpdate: now
-      };
+      return updated;
     });
-
-    setPatients(initialPatients);
-  }, []);
+  }, [globalPatients]);
 
   // Active continuous live stream loop controlled by isDemo state
   useEffect(() => {
-    if (!isDemo) return;
+    if (!isDemo || !globalPatients || globalPatients.length === 0) return;
 
     let t = 0;
     const interval = setInterval(() => {
       t += 1;
-      DEMO_ROSTER.forEach((p, idx) => {
-        const base = p.baseFhr;
+      globalPatients.forEach((p, idx) => {
+        const base = idx % 3 === 2 ? 172 : idx % 3 === 1 ? 156 : 138;
         const baseline = Math.max(90, Math.min(185, base + Math.sin(t / 4 + idx) * 8 + (Math.random() * 6 - 3)));
         const ucs = Math.sin(t / 6 + idx) > 0.5 ? 0.008 : 0.001;
-        const decel = idx === 2 && t % 20 > 12 ? 0.004 : 0;
-        const astv = idx === 2 ? 75 : idx === 1 ? 52 : 24;
+        const decel = idx % 3 === 2 && t % 20 > 12 ? 0.004 : 0;
+        const astv = idx % 3 === 2 ? 75 : idx % 3 === 1 ? 52 : 24;
 
         const features = {
           baseline_value: baseline,
-          accelerations: idx === 0 ? 0.004 : 0,
+          accelerations: idx % 3 === 0 ? 0.004 : 0,
           fetal_movement: 0.002,
           uterine_contractions: ucs,
           light_decelerations: 0,
@@ -217,7 +232,7 @@ export default function DashboardPage() {
 
         // Socket emit attempt
         try {
-          streamPatientData(p.id, features);
+          streamPatientData(p.mrn, features);
         } catch (e) {}
 
         const isHigh = baseline > 165 || decel > 0 || astv > 65;
@@ -232,7 +247,7 @@ export default function DashboardPage() {
           : "Reassuring baseline FHR trace. Continue standard observation.";
 
         const event: PredictionEvent = {
-          patient_id: p.id,
+          patient_id: p.mrn,
           timestamp: new Date().toISOString(),
           prediction: {
             prediction: statusName,
@@ -250,22 +265,22 @@ export default function DashboardPage() {
 
         setPatients(prev => ({
           ...prev,
-          [p.id]: {
-            patient_id: p.id,
+          [p.mrn]: {
+            patient_id: p.mrn,
             name: p.name,
             age: p.age,
-            gestational_age: p.ga,
+            gestational_age: p.gestational_age,
             latest: event,
-            history: [...(prev[p.id]?.history || []).slice(-120), event],
+            history: [...(prev[p.mrn]?.history || []).slice(-120), event],
             lastUpdate: new Date()
           }
         }));
 
         setTotalPredictions(prevCount => prevCount + 1);
 
-        if (isHigh && Math.random() > 0.85) {
+        if (!alertsMuted && isHigh && Math.random() > 0.85) {
           setAlerts(prev => [{
-            patient_id: p.id,
+            patient_id: p.mrn,
             timestamp: new Date().toISOString(),
             alert_type: "AI_DETECTION",
             severity: "CRITICAL",
@@ -277,7 +292,7 @@ export default function DashboardPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isDemo]);
+  }, [isDemo, globalPatients]);
 
   const activePatients = Object.values(patients);
   const criticalCount = activePatients.filter(
@@ -311,24 +326,44 @@ export default function DashboardPage() {
               Live fetal health classification via streaming CTG data
             </motion.p>
           </div>
-          <div className="flex items-center gap-4 text-xs font-medium">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-medium">
             <button
               onClick={() => setIsDemo(!isDemo)}
-              className={`px-4 py-1.5 rounded-full border transition-all ${
+              className={`px-4 py-2 rounded-xl font-bold border transition-all shadow-sm flex items-center gap-2 ${
                 isDemo
-                  ? "bg-purple-500/20 text-purple-600 border-purple-500/30 dark:text-purple-400"
-                  : "bg-surface-secondary text-foreground/60 border-surface-border hover:bg-surface-secondary/80"
+                  ? "bg-purple-600 text-white border-purple-500 shadow-purple-500/20"
+                  : "bg-surface-secondary text-foreground border-surface-border hover:bg-surface-secondary/80"
               }`}
             >
-              {isDemo ? "Stop Demo" : "Start Demo Mode"}
+              <Activity className="w-4 h-4" />
+              {isDemo ? "Stop Demo Simulation" : "Start Demo Simulation"}
             </button>
-            <div className="flex items-center gap-2 bg-surface-secondary/50 px-3 py-1.5 rounded-full border border-surface-border">
+
+            <button
+              onClick={() => setAlertsMuted(!alertsMuted)}
+              className={`px-3 py-2 rounded-xl font-bold border transition-all flex items-center gap-1.5 ${
+                alertsMuted
+                  ? "bg-amber-500/20 text-amber-500 border-amber-500/30"
+                  : "bg-surface-secondary text-foreground/70 border-surface-border hover:text-foreground"
+              }`}
+              title={alertsMuted ? "Unmute Alert Popups" : "Mute Alert Popups"}
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {alertsMuted ? "Alerts Muted" : "Mute Alerts"}
+            </button>
+
+            {alerts.length > 0 && (
+              <button
+                onClick={() => setAlerts([])}
+                className="px-3 py-2 rounded-xl font-bold bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all flex items-center gap-1.5"
+              >
+                <X className="w-3.5 h-3.5" /> Clear ({alerts.length}) Alerts
+              </button>
+            )}
+
+            <div className="flex items-center gap-2 bg-surface-secondary/50 px-3 py-2 rounded-xl border border-surface-border font-mono text-xs">
               <Clock className="w-3.5 h-3.5 text-foreground/60" />
               <span className="text-foreground/80" suppressHydrationWarning>{new Date().toLocaleTimeString()}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-clinical-500/10 px-3 py-1.5 rounded-full border border-clinical-500/20">
-              <Shield className="w-3.5 h-3.5 text-clinical-600 dark:text-clinical-400" />
-              <span className="text-clinical-600 dark:text-clinical-400">HIPAA Compliant</span>
             </div>
           </div>
         </header>
@@ -412,8 +447,20 @@ export default function DashboardPage() {
         </div>
 
         {/* ── Recent Alerts (Toast Style) ─────────────────────────────────── */}
-        <div className="fixed top-8 right-8 z-50 w-96 max-w-full flex flex-col gap-3 pointer-events-none">
-          <AnimatePresence>
+        {!alertsMuted && alerts.length > 0 && (
+          <div className="fixed top-8 right-8 z-50 w-96 max-w-full flex flex-col gap-3 pointer-events-none">
+            <div className="flex items-center justify-between bg-surface-primary/95 border border-red-500/30 p-2 px-3 rounded-xl shadow-lg pointer-events-auto backdrop-blur-md">
+              <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> Live Alerts ({alerts.length})
+              </span>
+              <button
+                onClick={() => setAlerts([])}
+                className="text-[10px] font-extrabold text-foreground/60 hover:text-red-400 uppercase tracking-wider px-2 py-1 rounded bg-surface-secondary"
+              >
+                Dismiss All
+              </button>
+            </div>
+            <AnimatePresence>
             {alerts.slice(0, 5).map((alert, idx) => (
               <motion.div
                 key={alert.timestamp + idx}
@@ -454,6 +501,7 @@ export default function DashboardPage() {
             ))}
           </AnimatePresence>
         </div>
+        )}
       </div>
     </DashboardLayout>
   );

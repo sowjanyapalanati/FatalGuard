@@ -202,6 +202,7 @@ export async function getFHIRObservation(input: CTGInput, patientId: string = "M
 // ── Patient Service ───────────────────────────────────────────
 export interface Patient {
   id: string;
+  sno?: number;
   mrn: string;
   name: string;
   age: number;
@@ -231,26 +232,12 @@ export async function getPatients(
   const headers: HeadersInit = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  try {
-    const res = await fetch(
-      `${PATIENT_API}/patients?active_only=${activeOnly}&limit=${limit}`,
-      { headers, signal: AbortSignal.timeout(1500) }
-    );
-    if (!res.ok) throw new Error(`Failed to fetch patients: ${res.statusText}`);
-    return res.json();
-  } catch (err) {
-    console.warn("Patient API offline, returning initial clinical roster", err);
-    return [
-      { id: "1", mrn: "MRN-001", name: "Sarah Connor", age: 28, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Mild Preeclampsia"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 101" },
-      { id: "2", mrn: "MRN-002", name: "Amara Johnson", age: 32, gestational_age: 34, gravida: 2, para: 1, risk_factors: ["Gestational Diabetes"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "Delivery Suite 102" },
-      { id: "3", mrn: "MRN-003", name: "Elena Lin", age: 24, gestational_age: 40, gravida: 1, para: 0, risk_factors: ["Gestational Hypertension"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 103" },
-      { id: "4", mrn: "MRN-004", name: "Maria Garcia", age: 35, gestational_age: 36, gravida: 3, para: 2, risk_factors: ["Previous C-Section"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward B" },
-      { id: "5", mrn: "MRN-005", name: "Chloe Bennett", age: 29, gestational_age: 39, gravida: 1, para: 0, risk_factors: [], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "Delivery Suite 104" },
-      { id: "6", mrn: "MRN-006", name: "Hannah Davis", age: 31, gestational_age: 37, gravida: 2, para: 1, risk_factors: ["Twin Gestation"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Sarah Patel", ward: "High-Risk Ward A" },
-      { id: "7", mrn: "MRN-007", name: "Priya Sharma", age: 27, gestational_age: 38, gravida: 1, para: 0, risk_factors: ["Polyhydramnios"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Elena Rostova", ward: "Delivery Suite 105" },
-      { id: "8", mrn: "MRN-008", name: "Olivia Taylor", age: 33, gestational_age: 41, gravida: 2, para: 1, risk_factors: ["Post-Term Pregnancy"], is_active: true, created_at: new Date().toISOString(), assigned_doctor: "Dr. Marcus Vance", ward: "High-Risk Ward C" },
-    ];
-  }
+  const res = await fetch(
+    `${PATIENT_API}/patients?active_only=${activeOnly}&limit=${limit}`,
+    { headers, signal: AbortSignal.timeout(5000) }
+  );
+  if (!res.ok) throw new Error(`Failed to fetch patients: ${res.statusText}`);
+  return res.json();
 }
 
 export async function getPatient(id: string): Promise<Patient> {
@@ -258,28 +245,9 @@ export async function getPatient(id: string): Promise<Patient> {
   const headers: HeadersInit = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  try {
-    const res = await fetch(`${PATIENT_API}/patients/${id}`, { headers, signal: AbortSignal.timeout(1500) });
-    if (!res.ok) throw new Error(`Patient not found: ${res.statusText}`);
-    return res.json();
-  } catch (e) {
-    const patients = await getPatients();
-    const match = patients.find(p => p.mrn === id || p.id === id);
-    return match || {
-      id: id,
-      mrn: id,
-      name: `Patient ${id}`,
-      age: 29,
-      gestational_age: 38,
-      gravida: 1,
-      para: 0,
-      risk_factors: ["Intrapartum Monitoring"],
-      assigned_doctor: "Dr. Elena Rostova",
-      ward: "Delivery Suite 101",
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-  }
+  const res = await fetch(`${PATIENT_API}/patients/${id}`, { headers, signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(`Patient not found: ${res.statusText}`);
+  return res.json();
 }
 
 export async function createPatient(
@@ -289,30 +257,12 @@ export async function createPatient(
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  try {
-    const res = await fetch(`${PATIENT_API}/patients`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(data),
-      signal: AbortSignal.timeout(1500)
-    });
-    if (!res.ok) throw new Error(`Failed to create patient: ${res.statusText}`);
-    return res.json();
-  } catch (err) {
-    console.warn("Patient API offline, storing new patient locally", err);
-    return {
-      id: "p-" + Math.random().toString(36).substring(2, 9),
-      mrn: data.mrn,
-      name: data.name || "Confidential",
-      age: data.age || 30,
-      gestational_age: data.gestational_age || 38,
-      gravida: data.gravida || 1,
-      para: data.para || 0,
-      risk_factors: data.risk_factors || [],
-      assigned_doctor: data.assigned_doctor || "Dr. Elena Rostova",
-      ward: data.ward || "Delivery Suite 105",
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-  }
+  const res = await fetch(`${PATIENT_API}/patients`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(data),
+    signal: AbortSignal.timeout(5000)
+  });
+  if (!res.ok) throw new Error(`Failed to create patient: ${res.statusText}`);
+  return res.json();
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "../../../components/DashboardLayout";
+import { usePatients } from "../../../context/PatientContext";
 import {
   HardDrive,
   Activity,
@@ -150,8 +151,15 @@ type LogEntry = {
 };
 
 export default function HardwareSimulatorPage() {
+  const { patients } = usePatients();
   const [selectedMake, setSelectedMake] = useState<DeviceMake>(DEVICE_MAKES[0]);
-  const [targetPatient, setTargetPatient] = useState("MRN-001");
+  const [targetPatient, setTargetPatient] = useState("");
+
+  useEffect(() => {
+    if (patients.length > 0 && !targetPatient) {
+      setTargetPatient(patients[0].mrn);
+    }
+  }, [patients, targetPatient]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [noiseLevel, setNoiseLevel] = useState(5); // 0 - 20%
   const [signalQuality, setSignalQuality] = useState(98);
@@ -386,9 +394,11 @@ export default function HardwareSimulatorPage() {
                   disabled={isStreaming}
                   className="w-full bg-surface-primary border border-surface-border rounded-lg px-3 py-2 font-bold text-foreground focus:outline-none"
                 >
-                  <option value="MRN-001">MRN-001 — Sarah Connor (Suite 101)</option>
-                  <option value="MRN-002">MRN-002 — Amara Johnson (Suite 102)</option>
-                  <option value="MRN-003">MRN-003 — Elena Lin (Suite 103)</option>
+                  {patients.map(p => (
+                    <option key={p.id || p.mrn} value={p.mrn}>
+                      {p.mrn} — {p.name} {p.ward ? `(${p.ward})` : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
 

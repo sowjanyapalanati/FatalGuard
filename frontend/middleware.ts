@@ -1,33 +1,25 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Add paths that require authentication here
-const protectedPaths = [
-  '/',
-  '/dashboard/patients',
-  '/dashboard/alerts',
-  '/dashboard/analysis',
-  '/dashboard/settings',
-  '/dashboard/devices'
-]
+const publicPaths = ['/login', '/register', '/forgot-password'];
 
 export function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname
-  const isProtectedPath = protectedPaths.some(p => path === p || path.startsWith(p + '/'))
+  const path = request.nextUrl.pathname;
+  const isPublicPath = publicPaths.includes(path);
   
-  const authCookie = request.cookies.get('fetalguard_auth')?.value
+  const authCookie = request.cookies.get('fetalguard_auth')?.value;
 
-  if (isProtectedPath && !authCookie) {
-    // Redirect to login if accessing a protected route without auth
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Unauthenticated users must authenticate first at /login
+  if (!isPublicPath && !authCookie) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (path === '/login' && authCookie) {
-    // Redirect to dashboard if trying to access login while already authenticated
-    return NextResponse.redirect(new URL('/', request.url))
+  // Already authenticated users visiting login/register are redirected to live dashboard
+  if (isPublicPath && authCookie && path !== '/forgot-password') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {

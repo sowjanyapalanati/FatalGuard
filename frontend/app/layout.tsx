@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
+import { PatientProvider } from "../context/PatientContext";
+import { RoleProvider } from "../context/RoleContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,7 +30,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <RoleProvider>
+            <PatientProvider>
+              {children}
+            </PatientProvider>
+          </RoleProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -19,10 +19,10 @@ echo [1/3] Starting AI Inference Service...
 start "AI Inference Service" cmd /k "title AI Inference :8003 & cd ai_inference_service & (if not exist venv\Scripts\uvicorn.exe (python -m venv venv & venv\Scripts\python -m pip install -r requirements.txt)) & set MODELS_DIR=..\ml_pipeline\models& set DATABASE_URL=sqlite+aiosqlite:///./fetal_health.db& venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8003"
 
 echo [2/3] Starting Patient Service...
-start "Patient Service" cmd /k "title Patient Service :8001 & cd patient_service & (if not exist venv\Scripts\uvicorn.exe (python -m venv venv & venv\Scripts\python -m pip install -r requirements.txt)) & set MONGODB_URI=mongodb+srv://fatal:fatal@fatal.teadfzv.mongodb.net/?appName=fatal& set JWT_SECRET_KEY=v2_secure_production_key_4482910x& venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8001"
+start "Patient Service" cmd /k "title Patient Service :8001 & cd patient_service & (if not exist venv\Scripts\uvicorn.exe (python -m venv venv & venv\Scripts\python -m pip install -r requirements.txt)) & (if not defined MONGODB_URI set MONGODB_URI=mongodb+srv://fatal:fatal@fatal.teadfzv.mongodb.net/?appName=fatal) & (if not defined JWT_SECRET_KEY set JWT_SECRET_KEY=v2_secure_production_key_4482910x) & venv\Scripts\python -m uvicorn main:app --host 127.0.0.1 --port 8001"
 
-echo [3/3] Starting Frontend Dashboard...
-start "Frontend Dashboard" cmd /k "title Frontend :3005 & cd frontend & (if not exist node_modules (call npm install)) & rmdir /s /q .next 2>nul & npm run dev"
+echo [3/3] Starting Frontend Dashboard (Production Engine)...
+start "Frontend Dashboard" cmd /k "title Frontend :3005 & cd frontend & (if not exist node_modules (call npm install)) & (if not exist .next\routes-manifest.json (call npm run build)) & npm run start"
 
 echo.
 echo ========================================================

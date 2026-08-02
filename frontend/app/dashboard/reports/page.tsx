@@ -24,7 +24,8 @@ import {
   Clock
 } from "lucide-react";
 import { DashboardLayout } from "../../../components/DashboardLayout";
-import { getPatients, predictCTG, getFHIRObservation, Patient, CTGInput, PredictionResult } from "../../../lib/api";
+import { usePatients } from "../../../context/PatientContext";
+import { predictCTG, getFHIRObservation, Patient, CTGInput, PredictionResult } from "../../../lib/api";
 
 const PRESET_TRACES: Record<string, { label: string; data: CTGInput }> = {
   NORMAL: {
@@ -102,8 +103,8 @@ const PRESET_TRACES: Record<string, { label: string; data: CTGInput }> = {
 };
 
 export default function ClinicalReportsPage() {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedPatientId, setSelectedPatientId] = useState<string>("MRN-001");
+  const { patients } = usePatients();
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   const [ctgData, setCtgData] = useState<CTGInput>(PRESET_TRACES.NORMAL.data);
@@ -120,18 +121,14 @@ export default function ClinicalReportsPage() {
   const [copied, setCopied] = useState(false);
   const [presetKey, setPresetKey] = useState<string>("NORMAL");
 
-  // Load patients roster on mount
+  // Sync selected patient with patients array
   useEffect(() => {
-    async function loadPatients() {
-      const data = await getPatients();
-      setPatients(data);
-      if (data.length > 0) {
-        setSelectedPatientId(data[0].mrn || data[0].id);
-        setSelectedPatient(data[0]);
-      }
+    if (patients.length > 0) {
+      const found = patients.find(p => p.mrn === selectedPatientId || p.id === selectedPatientId) || patients[0];
+      setSelectedPatientId(found.mrn);
+      setSelectedPatient(found);
     }
-    loadPatients();
-  }, []);
+  }, [patients, selectedPatientId]);
 
   // Update selected patient details when dropdown changes
   const handlePatientChange = (mrn: string) => {
@@ -139,6 +136,25 @@ export default function ClinicalReportsPage() {
     const found = patients.find(p => p.mrn === mrn || p.id === mrn);
     if (found) {
       setSelectedPatient(found);
+      if (found.assigned_doctor) {
+        setClinicianName(found.assigned_doctor);
+      }
+      
+      const hasPreeclampsia = found.risk_factors.some(r => r.toLowerCase().includes("preeclampsia") || r.toLowerCase().includes("hypertension"));
+      const hasDiabetes = found.risk_factors.some(r => r.toLowerCase().includes("diabetes"));
+      const hasTwins = found.risk_factors.some(r => r.toLowerCase().includes("twin"));
+      const hasPoly = found.risk_factors.some(r => r.toLowerCase().includes("polyhydramnios") || r.toLowerCase().includes("c-section") || r.toLowerCase().includes("post-term"));
+
+      if (hasPreeclampsia) {
+        setPresetKey("PATHOLOGICAL");
+        setCtgData(PRESET_TRACES.PATHOLOGICAL.data);
+      } else if (hasDiabetes || hasTwins || hasPoly) {
+        setPresetKey("SUSPECT");
+        setCtgData(PRESET_TRACES.SUSPECT.data);
+      } else {
+        setPresetKey("NORMAL");
+        setCtgData(PRESET_TRACES.NORMAL.data);
+      }
     }
   };
 

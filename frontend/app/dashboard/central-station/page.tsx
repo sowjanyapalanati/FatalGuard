@@ -21,6 +21,7 @@ import {
   X
 } from "lucide-react";
 import { DashboardLayout } from "../../../components/DashboardLayout";
+import { usePatients } from "../../../context/PatientContext";
 import ReactECharts from "echarts-for-react";
 
 interface BedData {
@@ -39,6 +40,7 @@ interface BedData {
 }
 
 export default function CentralStationPage() {
+  const { patients } = usePatients();
   const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<"ALL" | "HIGH" | "MEDIUM" | "LOW">("ALL");
   const [muted, setMuted] = useState(false);
@@ -49,36 +51,55 @@ export default function CentralStationPage() {
     setMounted(true);
   }, []);
 
-  // Initialize 8 beds with realistic continuous physiological signals
-  const [beds, setBeds] = useState<BedData[]>(() => {
-    const defaultBeds = [
-      { bedId: "Bed-101", roomName: "Labor Room 1", patientMrn: "MRN-001", patientName: "Sarah Connor", gestationalAge: 38, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
-      { bedId: "Bed-102", roomName: "Labor Room 2", patientMrn: "MRN-002", patientName: "Amara Johnson", gestationalAge: 34, riskLevel: "MEDIUM" as const, riskColor: "#f59e0b", status: "Suspect" as const },
-      { bedId: "Bed-103", roomName: "Labor Room 3", patientMrn: "MRN-003", patientName: "Elena Lin", gestationalAge: 40, riskLevel: "HIGH" as const, riskColor: "#ef4444", status: "Pathological" as const },
-      { bedId: "Bed-104", roomName: "Labor Room 4", patientMrn: "MRN-004", patientName: "Maria Garcia", gestationalAge: 36, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
-      { bedId: "Bed-105", roomName: "Labor Room 5", patientMrn: "MRN-005", patientName: "Chloe Bennett", gestationalAge: 39, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
-      { bedId: "Bed-106", roomName: "Labor Room 6", patientMrn: "MRN-006", patientName: "Hannah Davis", gestationalAge: 37, riskLevel: "MEDIUM" as const, riskColor: "#f59e0b", status: "Suspect" as const },
-      { bedId: "Bed-107", roomName: "Labor Room 7", patientMrn: "MRN-007", patientName: "Priya Sharma", gestationalAge: 38, riskLevel: "LOW" as const, riskColor: "#22c55e", status: "Normal" as const },
-      { bedId: "Bed-108", roomName: "Labor Room 8", patientMrn: "MRN-008", patientName: "Olivia Taylor", gestationalAge: 41, riskLevel: "HIGH" as const, riskColor: "#ef4444", status: "Pathological" as const },
-    ];
+  const [beds, setBeds] = useState<BedData[]>([]);
 
-    return defaultBeds.map(b => {
-      const now = Date.now();
-      const baseFhr = b.riskLevel === "HIGH" ? 172 : b.riskLevel === "MEDIUM" ? 158 : 138;
-      const history = Array.from({ length: 40 }, (_, idx) => ({
-        time: new Date(now - (40 - idx) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        fhr: baseFhr + Math.sin(idx / 3) * 6 + (Math.random() * 4 - 2),
-        contractions: Math.sin(idx / 5) > 0.5 ? Math.random() * 40 + 20 : Math.random() * 10
-      }));
-      return {
-        ...b,
-        fhr: history[history.length - 1].fhr,
-        contractions: history[history.length - 1].contractions,
-        history,
-        lastUpdate: new Date().toLocaleTimeString()
-      };
+  // Dynamically sync beds with unified patients roster
+  useEffect(() => {
+    if (!patients || patients.length === 0) return;
+
+    setBeds(prevBeds => {
+      const existingMap = new Map(prevBeds.map(b => [b.patientMrn, b]));
+
+      return patients.map((p, index) => {
+        const existing = existingMap.get(p.mrn);
+        if (existing) {
+          return {
+            ...existing,
+            patientName: p.name,
+            gestationalAge: p.gestational_age,
+            roomName: p.ward || `Labor Room ${index + 1}`
+          };
+        }
+
+        const riskLevel: "LOW" | "MEDIUM" | "HIGH" = index % 3 === 2 ? "HIGH" : index % 3 === 1 ? "MEDIUM" : "LOW";
+        const riskColor = riskLevel === "HIGH" ? "#ef4444" : riskLevel === "MEDIUM" ? "#f59e0b" : "#22c55e";
+        const status = riskLevel === "HIGH" ? "Pathological" : riskLevel === "MEDIUM" ? "Suspect" : "Normal";
+        const baseFhr = riskLevel === "HIGH" ? 172 : riskLevel === "MEDIUM" ? 158 : 138;
+
+        const now = Date.now();
+        const history = Array.from({ length: 40 }, (_, idx) => ({
+          time: new Date(now - (40 - idx) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          fhr: baseFhr + Math.sin(idx / 3) * 6 + (Math.random() * 4 - 2),
+          contractions: Math.sin(idx / 5) > 0.5 ? Math.random() * 40 + 20 : Math.random() * 10
+        }));
+
+        return {
+          bedId: `Bed-${101 + index}`,
+          roomName: p.ward || `Labor Room ${index + 1}`,
+          patientMrn: p.mrn,
+          patientName: p.name,
+          gestationalAge: p.gestational_age,
+          riskLevel,
+          riskColor,
+          status,
+          fhr: history[history.length - 1].fhr,
+          contractions: history[history.length - 1].contractions,
+          history,
+          lastUpdate: new Date().toLocaleTimeString()
+        };
+      });
     });
-  });
+  }, [patients]);
 
   // Real-time ticking stream update for all 8 beds
   useEffect(() => {

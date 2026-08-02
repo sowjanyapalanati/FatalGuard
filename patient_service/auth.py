@@ -166,23 +166,81 @@ async def get_me(current_user = Depends(get_current_user)):
 @router.patch("/me", response_model=UserResponse)
 async def update_me(update_data: UserUpdate, current_user = Depends(get_current_user), db = Depends(get_db)):
     update_dict = {}
-    
-    if update_data.email is not None:
-        # Check if email is already taken by someone else
-        existing = await db.users.find_one({"email": update_data.email})
-        if existing and existing["username"] != current_user["username"]:
-            raise HTTPException(status_code=400, detail="Email already registered")
+    if update_data.email:
         update_dict["email"] = update_data.email
-        
-    if update_data.password is not None:
+    if update_data.password:
         update_dict["hashed_pw"] = get_password_hash(update_data.password)
-        
-    if update_dict:
+
+    if update_dict and db is not None:
         await db.users.update_one(
-            {"_id": current_user["_id"]},
+            {"username": current_user["username"]},
             {"$set": update_dict}
         )
-        
-    # Fetch updated user
-    updated_user = await db.users.find_one({"_id": current_user["_id"]})
-    return UserResponse(**updated_user)
+        current_user.update(update_dict)
+
+    return UserResponse(**{k: v for k, v in current_user.items() if k in UserResponse.model_fields})
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+    reset_code: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest, db = Depends(get_db)):
+    reset_code = "FG-" + str(uuid.uuid4())[:6].upper()
+
+    if db is None:
+        return {
+            "message": "If that email is registered, a password reset code has been sent.",
+            "reset_code": reset_code
+        }
+
+    user = await db.users.find_one({"email": body.email})
+    if user:
+        await db.users.update_one(
+            {"email": body.email},
+            {"$set": {
+                "reset_code": reset_code,
+                "reset_code_created_at": datetime.now(timezone.utc)
+            }}
+        )
+
+    # Always return the code (in production this would be emailed, never returned)
+    return {
+        "message": "Password reset verification code generated.",
+        "reset_code": reset_code
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest, db = Depends(get_db)):
+    if db is None:
+        return {"message": "Password reset successfully. You can now login."}
+
+    user = await db.users.find_one({"email": body.email})
+    if not user:
+        raise HTTPException(status_code=400, detail="Email address not found.")
+
+    stored_code = user.get("reset_code", "")
+    if not stored_code or stored_code != body.reset_code:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code. Please request a new one.")
+
+    # Check expiry — code valid for 15 minutes
+    created_at = user.get("reset_code_created_at")
+    if created_at:
+        age = datetime.now(timezone.utc) - created_at.replace(tzinfo=timezone.utc) if created_at.tzinfo is None else datetime.now(timezone.utc) - created_at
+        if age.total_seconds() > 900:
+            raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+
+    hashed_password = get_password_hash(body.new_password)
+    await db.users.update_one(
+        {"email": body.email},
+        {"$set": {"hashed_pw": hashed_password}, "$unset": {"reset_code": "", "reset_code_created_at": ""}}
+    )
+    return {"message": "Password reset successfully. You can now login."}

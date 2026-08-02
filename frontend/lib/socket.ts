@@ -29,7 +29,7 @@ class WebSocketClient extends EventEmitter {
   connect() {
     // Don't attempt connection if no URL is configured
     if (!WS_URL) {
-      console.warn("⚠️ WebSocket URL not configured (NEXT_PUBLIC_WS_URL). Real-time updates disabled.");
+      console.warn("⚠️ WebSocket URL not configured. Real-time updates disabled.");
       return;
     }
 

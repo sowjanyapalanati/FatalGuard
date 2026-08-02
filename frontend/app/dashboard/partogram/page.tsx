@@ -19,6 +19,8 @@ import {
   Info
 } from "lucide-react";
 import { DashboardLayout } from "../../../components/DashboardLayout";
+import { usePatients } from "../../../context/PatientContext";
+import { Patient } from "../../../lib/api";
 import ReactECharts from "echarts-for-react";
 
 interface LaborEvent {
@@ -30,36 +32,13 @@ interface LaborEvent {
 }
 
 export default function PartogramPage() {
+  const { patients } = usePatients();
   const [mounted, setMounted] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState("MRN-001");
-  const [patientName, setPatientName] = useState("Sarah Connor");
+  const [selectedPatient, setSelectedPatient] = useState("");
+  const [patientName, setPatientName] = useState("");
   const [gestationalAge, setGestationalAge] = useState(38);
   const [gravidaPara, setGravidaPara] = useState("G1 P0");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const PATIENT_MAP: Record<string, { name: string; ga: number; gp: string }> = {
-    "MRN-001": { name: "Sarah Connor", ga: 38, gp: "G1 P0" },
-    "MRN-002": { name: "Amara Johnson", ga: 34, gp: "G2 P1" },
-    "MRN-003": { name: "Elena Lin", ga: 40, gp: "G1 P0" },
-    "MRN-004": { name: "Maria Garcia", ga: 36, gp: "G3 P2" },
-    "MRN-005": { name: "Chloe Bennett", ga: 39, gp: "G1 P0" },
-    "MRN-006": { name: "Hannah Davis", ga: 37, gp: "G2 P1" },
-    "MRN-007": { name: "Priya Sharma", ga: 38, gp: "G1 P0" },
-    "MRN-008": { name: "Olivia Taylor", ga: 41, gp: "G2 P1" },
-  };
-
-  const handleSelectPatient = (mrn: string) => {
-    setSelectedPatient(mrn);
-    const p = PATIENT_MAP[mrn];
-    if (p) {
-      setPatientName(p.name);
-      setGestationalAge(p.ga);
-      setGravidaPara(p.gp);
-    }
-  };
   const [membranesStatus, setMembranesStatus] = useState("Intact");
 
   const [cervicalData, setCervicalData] = useState([
@@ -72,11 +51,92 @@ export default function PartogramPage() {
   ]);
 
   const [events, setEvents] = useState<LaborEvent[]>([
-    { id: "e1", time: "08:00", type: "VAGINAL_EXAM", description: "Admission Vaginal Exam: 3cm dilated, 70% effaced, -3 station.", clinician: "Dr. Elena Rostova" },
-    { id: "e2", time: "10:00", type: "AMNIOTOMY", description: "Artificial Rupture of Membranes (AROM). Clear amniotic fluid.", clinician: "Dr. Elena Rostova" },
+    { id: "e1", time: "08:00", type: "VAGINAL_EXAM", description: "Admission Vaginal Exam: 3cm dilated, 70% effaced, -3 station.", clinician: "Dr. K. Srilatha, MD" },
+    { id: "e2", time: "10:00", type: "AMNIOTOMY", description: "Artificial Rupture of Membranes (AROM). Clear amniotic fluid.", clinician: "Dr. K. Srilatha, MD" },
     { id: "e3", time: "12:30", type: "EPI", description: "Epidural analgesia administered at L3-L4 level.", clinician: "Dr. Anesthesiologist" },
-    { id: "e4", time: "14:00", type: "OXYTOCIN", description: "Oxytocin infusion started at 2 mIU/min for labor augmentation.", clinician: "Dr. Elena Rostova" },
+    { id: "e4", time: "14:00", type: "OXYTOCIN", description: "Oxytocin infusion started at 2 mIU/min for labor augmentation.", clinician: "Dr. K. Srilatha, MD" },
   ]);
+
+  const updatePartogramForPatient = (p: Patient) => {
+    const seed = (p.mrn || p.id || "1").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const isHighRisk = p.risk_factors.some(r => 
+      r.toLowerCase().includes("preeclampsia") || 
+      r.toLowerCase().includes("hypertension") || 
+      r.toLowerCase().includes("diabetes")
+    );
+
+    const doctor = p.assigned_doctor || "Dr. K. Srilatha, MD";
+    const baseDilation = 2.5 + (seed % 3) * 0.5;
+
+    const newCData = [
+      { hour: 0, time: "08:00", dilation: Number(baseDilation.toFixed(1)), station: -3, contractions: 2, fhr: 136 + (seed % 10), bpSys: isHighRisk ? 140 : 118, bpDia: isHighRisk ? 90 : 76, pulse: 78 },
+      { hour: 2, time: "10:00", dilation: Number((baseDilation + 1.2).toFixed(1)), station: -2, contractions: 3, fhr: 140 + (seed % 8), bpSys: isHighRisk ? 142 : 120, bpDia: isHighRisk ? 92 : 78, pulse: 82 },
+      { hour: 4, time: "12:00", dilation: Number((baseDilation + 2.8).toFixed(1)), station: -1, contractions: 3, fhr: 138 + (seed % 12), bpSys: isHighRisk ? 138 : 122, bpDia: isHighRisk ? 88 : 80, pulse: 84 },
+      { hour: 6, time: "14:00", dilation: Number(Math.min(10, baseDilation + 4.5).toFixed(1)), station: 0, contractions: 4, fhr: 144 + (seed % 6), bpSys: isHighRisk ? 144 : 124, bpDia: isHighRisk ? 94 : 82, pulse: 88 },
+      { hour: 8, time: "16:00", dilation: Number(Math.min(10, baseDilation + 6.5).toFixed(1)), station: 1, contractions: 4, fhr: 142 + (seed % 7), bpSys: isHighRisk ? 140 : 122, bpDia: isHighRisk ? 90 : 80, pulse: 86 },
+      { hour: 10, time: "18:00", dilation: 10.0, station: 3, contractions: 5, fhr: 139 + (seed % 5), bpSys: isHighRisk ? 136 : 126, bpDia: isHighRisk ? 86 : 84, pulse: 90 },
+    ];
+
+    const newEvents: LaborEvent[] = [
+      { 
+        id: `e1-${p.mrn}`, 
+        time: "08:00", 
+        type: "VAGINAL_EXAM", 
+        description: `Admission Exam for ${p.name}: ${baseDilation.toFixed(1)}cm dilated, 70% effaced, -3 station. ${p.risk_factors.length ? 'Risk factors: ' + p.risk_factors.join(', ') : 'Normal active labor.'}`, 
+        clinician: doctor 
+      },
+      { 
+        id: `e2-${p.mrn}`, 
+        time: "10:00", 
+        type: "AMNIOTOMY", 
+        description: "Artificial Rupture of Membranes (AROM). Clear amniotic fluid.", 
+        clinician: doctor 
+      },
+      { 
+        id: `e3-${p.mrn}`, 
+        time: "12:30", 
+        type: "EPI", 
+        description: "Epidural analgesia administered at L3-L4 level.", 
+        clinician: "Dr. Anesthesiologist" 
+      },
+      { 
+        id: `e4-${p.mrn}`, 
+        time: "14:00", 
+        type: "OXYTOCIN", 
+        description: `Oxytocin infusion started at 2 mIU/min for labor augmentation under care of ${doctor}.`, 
+        clinician: doctor 
+      },
+    ];
+
+    setCervicalData(newCData);
+    setEvents(newEvents);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (patients.length > 0) {
+      const match = patients.find(p => p.mrn === selectedPatient || p.id === selectedPatient) || patients[0];
+      setSelectedPatient(match.mrn);
+      setPatientName(match.name);
+      setGestationalAge(match.gestational_age);
+      setGravidaPara(`G${match.gravida} P${match.para}`);
+      updatePartogramForPatient(match);
+    }
+  }, [patients, selectedPatient]);
+
+  const handleSelectPatient = (mrn: string) => {
+    setSelectedPatient(mrn);
+    const p = patients.find(patient => patient.mrn === mrn || patient.id === mrn);
+    if (p) {
+      setPatientName(p.name);
+      setGestationalAge(p.gestational_age);
+      setGravidaPara(`G${p.gravida} P${p.para}`);
+      updatePartogramForPatient(p);
+    }
+  };
 
   const [newEventDesc, setNewEventDesc] = useState("");
   const [newEventType, setNewEventType] = useState<LaborEvent["type"]>("NOTE");
@@ -124,14 +184,11 @@ export default function PartogramPage() {
               onChange={e => handleSelectPatient(e.target.value)}
               className="bg-surface-secondary border border-surface-border rounded-xl px-4 py-2 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-clinical-500"
             >
-              <option value="MRN-001">MRN-001 — Sarah Connor (Suite 101)</option>
-              <option value="MRN-002">MRN-002 — Amara Johnson (Suite 102)</option>
-              <option value="MRN-003">MRN-003 — Elena Lin (Suite 103)</option>
-              <option value="MRN-004">MRN-004 — Maria Garcia (Ward B)</option>
-              <option value="MRN-005">MRN-005 — Chloe Bennett (Suite 104)</option>
-              <option value="MRN-006">MRN-006 — Hannah Davis (Ward A)</option>
-              <option value="MRN-007">MRN-007 — Priya Sharma (Suite 105)</option>
-              <option value="MRN-008">MRN-008 — Olivia Taylor (Ward C)</option>
+              {patients.map(p => (
+                <option key={p.id || p.mrn} value={p.mrn}>
+                  {p.mrn} — {p.name} {p.ward ? `(${p.ward})` : ''}
+                </option>
+              ))}
             </select>
 
             <button
